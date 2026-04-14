@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Berkeley Tax Bundle Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      background: #f0ede8;
+      color: #1a1a1a;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a3a5c;
+      color: #fff;
+      padding: 10px 18px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+    header p  { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+
+    /* ── Root layout ── */
+    .layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── Control panel ── */
+    .control-panel {
+      background: #fff;
+      border-bottom: 1px solid #d8d4cc;
+      padding: 10px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+
+    .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+    .ctrl-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #777;
+      margin-bottom: 2px;
+    }
+
+    .tier-divider {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #aaa;
+      margin-top: 5px;
+      margin-bottom: 1px;
+    }
+
+    .measure-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .measure-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .measure-label input[type=checkbox] { cursor: pointer; accent-color: #1a3a5c; }
+
+    .info-link {
+      background: none;
+      border: none;
+      color: #1a6eb5;
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      padding: 1px 0;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .info-link:hover { color: #0d3a6e; }
+
+    /* Description floats fixed — completely outside the layout flow */
+    .measure-desc {
+      position: fixed;
+      z-index: 500;
+      width: 310px;
+      max-width: calc(100vw - 20px);
+      background: #fff;
+      border: 1px solid #c8c4bc;
+      border-radius: 7px;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+      padding: 11px 13px 11px 13px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .measure-desc strong { color: #1a1a1a; }
+    .desc-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 16px;
+      line-height: 1;
+      color: #bbb;
+      cursor: pointer;
+      padding: 0 0 0 8px;
+      margin-top: -1px;
+      font-family: inherit;
+    }
+    .desc-close:hover { color: #555; }
+
+    .tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .tag-draft        { background: #fef3c7; color: #92400e; }
+    .tag-probable     { background: #dbeafe; color: #1e3a8a; }
+    .tag-placeholder  { background: #f3f4f6; color: #6b7280; }
+
+    .preset-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1.5px solid #1a3a5c;
+      background: #fff;
+      color: #1a3a5c;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+    .preset-btn:hover { background: #1a3a5c; color: #fff; }
+
+    .inputs-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .input-field { display: flex; flex-direction: column; gap: 3px; }
+    .input-field label { font-size: 10px; color: #666; font-weight: 600; }
+    .input-field input {
+      width: 88px;
+      padding: 4px 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1a1a1a;
+    }
+    .input-field input:focus { outline: 2px solid #1a3a5c; border-color: transparent; }
+
+    /* ── Main content (matrix + detail) ── */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Matrix ── */
+    .matrix-wrap {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+      background: #fff;
+    }
+
+    .matrix-table {
+      border-collapse: collapse;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .matrix-table thead th {
+      position: sticky;
+      top: 0;
+      background: #1a3a5c;
+      color: #fff;
+      padding: 4px 5px;
+      text-align: center;
+      white-space: nowrap;
+      z-index: 10;
+      border: 1px solid #14305c;
+      font-size: 10px;
+    }
+    .matrix-table thead th.corner {
+      left: 0;
+      z-index: 20;
+      text-align: center;
+      font-style: italic;
+      font-size: 9px;
+      opacity: 0.85;
+    }
+
+    .matrix-table tbody th {
+      position: sticky;
+      left: 0;
+      background: #2c5282;
+      color: #fff;
+      padding: 3px 8px;
+      font-weight: 600;
+      text-align: right;
+      white-space: nowrap;
+      z-index: 5;
+      border: 1px solid #1e3a5a;
+      font-size: 10px;
+    }
+
+    .matrix-table td {
+      padding: 2px 5px;
+      text-align: center;
+      cursor: pointer;
+      min-width: 54px;
+      border: 1px solid rgba(0,0,0,0.06);
+      transition: filter 0.08s;
+      white-space: nowrap;
+    }
+    .matrix-table td:hover {
+      filter: brightness(0.82);
+      outline: 2px solid #1a3a5c;
+      outline-offset: -2px;
+      z-index: 1;
+      position: relative;
+    }
+    .matrix-table td.selected {
+      outline: 3px solid #1a1a1a;
+      outline-offset: -3px;
+      font-weight: 700;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ── Detail panel ── */
+    .detail-panel {
+      flex-shrink: 0;
+      background: #fff;
+      border-top: 1px solid #d8d4cc;
+      padding: 10px 14px;
+      min-height: 220px;
+      max-height: 240px;
+    }
+
+    .detail-empty {
+      color: #aaa;
+      font-style: italic;
+      text-align: center;
+      padding: 60px 20px;
+      font-size: 12px;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .detail-title { font-size: 13px; font-weight: 600; color: #1a3a5c; }
+    .detail-cost-now { font-size: 21px; font-weight: 700; color: #b91c1c; }
+    .detail-cost-future { font-size: 12px; color: #555; }
+
+    .chart-wrap { height: 148px; position: relative; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 270px;
+      flex-shrink: 0;
+      background: #fafaf8;
+      border-left: 1px solid #d8d4cc;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sb-section {
+      padding: 11px 13px;
+      border-bottom: 1px solid #e8e4de;
+    }
+    .sb-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #888;
+      margin-bottom: 7px;
+    }
+
+    .sb-total { font-size: 26px; font-weight: 700; color: #b91c1c; line-height: 1; }
+    .sb-total-label { font-size: 11px; color: #666; margin-top: 2px; }
+    .sb-projected { font-size: 12px; color: #333; margin-top: 7px; line-height: 1.5; }
+    .sb-projected strong { color: #b91c1c; }
+    .proj-note { font-size: 10px; color: #888; }
+    .sb-measure-count { font-size: 11px; color: #888; margin-top: 5px; }
+
+    .sb-empty { font-size: 11px; color: #bbb; font-style: italic; }
+
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .breakdown-table th {
+      font-size: 10px;
+      font-weight: 600;
+      color: #aaa;
+      text-align: left;
+      padding-bottom: 4px;
+    }
+    .breakdown-table th:nth-child(2) { text-align: right; }
+    .breakdown-table th:nth-child(3) { text-align: right; }
+    .breakdown-table td {
+      padding: 3px 0;
+      border-top: 1px solid #eeebe6;
+      vertical-align: middle;
+    }
+    .breakdown-table td:nth-child(2) { text-align: right; padding-right: 6px; font-variant-numeric: tabular-nums; }
+    .breakdown-table td:nth-child(3) { text-align: right; color: #888; }
+
+    .measure-name-cell { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+    .assump-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 2px 0;
+      color: #444;
+    }
+    .assump-row span:last-child { font-weight: 600; color: #1a1a1a; }
+
+    .reset-btn {
+      display: block;
+      width: 100%;
+      padding: 6px 8px;
+      margin-top: 5px;
+      background: #f0ede8;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #444;
+      cursor: pointer;
+      text-align: left;
+    }
+    .reset-btn:first-child { margin-top: 0; }
+    .reset-btn:hover { background: #e4e0da; }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c8c4bc; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+    /* ── Baseline toggle ── */
+    .baseline-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      color: #1a1a1a;
+    }
+    .baseline-toggle input { accent-color: #1a3a5c; cursor: pointer; transform: scale(1.1); }
+    .baseline-desc { font-size: 10px; color: #999; margin-top: 2px; }
+
+    /* ── Three-way cost split (sidebar) ── */
+    .split-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12px;
+      padding: 3px 0;
+    }
+    .split-row.total-row {
+      border-top: 1px solid #ccc;
+      margin-top: 4px;
+      padding-top: 6px;
+      font-weight: 700;
+    }
+    .split-label { color: #555; }
+    .split-label.total { color: #1a1a1a; }
+    .split-amount { font-variant-numeric: tabular-nums; }
+    .split-amount.incumbent { color: #555; }
+    .split-amount.proposed  { color: #b91c1c; }
+    .split-amount.total     { color: #b91c1c; font-size: 15px; }
+
+    /* ── Breakdown table group headers ── */
+    .breakdown-group-hdr {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #aaa;
+      padding: 6px 0 2px;
+      border-top: 1px solid #eeebe6;
+    }
+    .breakdown-group-hdr:first-child { border-top: none; padding-top: 0; }
+
+    /* ── Jurisdictional rollup breakdown ── */
+    .rollup-cat { margin-bottom: 2px; }
+    .rollup-cat-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 5px 0 2px; border-top: 1px solid #eeebe6;
+      font-size: 10px; font-weight: 600; color: #555; cursor: default;
+    }
+    .rollup-cat-hdr:first-child { border-top: none; }
+    .rollup-cat-label { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+    .rollup-cat-note  { font-size: 9px; color: #aaa; font-weight: 400; white-space: nowrap; }
+    .rollup-cat-amount { font-variant-numeric: tabular-nums; font-size: 11px; color: #333; flex-shrink: 0; }
+    .rollup-tt-btn {
+      background: none; border: none; padding: 0 2px; cursor: pointer;
+      color: #8fa0b4; font-size: 10px; text-decoration: underline dotted;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .rollup-tt-btn:hover { color: #1a3a5c; }
+    .rollup-expand-btn {
+      background: none; border: none; padding: 0; cursor: pointer;
+      color: #8fa0b4; font-size: 10px; line-height: 1; margin-left: 3px;
+    }
+    .rollup-expand-btn:hover { color: #1a3a5c; }
+    .rollup-subitems { padding-left: 10px; margin-bottom: 4px; }
+    .rollup-subitem {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 2px 0; font-size: 10px; color: #777; border-bottom: 1px solid #f5f5f2;
+    }
+    .rollup-subitem:last-child { border-bottom: none; }
+    .rollup-sub-label { flex: 1; min-width: 0; }
+    .rollup-sub-note  { font-size: 9px; color: #bbb; margin-left: 4px; }
+    .rollup-sub-amount { font-variant-numeric: tabular-nums; font-size: 10px; flex-shrink: 0; }
+    /* Floating rollup tooltip panel (appended to body) */
+    .rollup-tooltip-panel {
+      position: fixed; z-index: 9999;
+      background: #1a1a2e; color: #e8e4de; border-radius: 8px;
+      padding: 10px 12px; max-width: 280px; font-size: 11px; line-height: 1.55;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      pointer-events: none;
+    }
+    .rollup-tooltip-panel.left  { transform: translateX(-100%) translateX(-8px); }
+    .rollup-tooltip-panel.right { transform: translateX(8px); }
+
+    /* ── Disclosure note ── */
+    .sb-disclosure {
+      font-size: 10px;
+      color: #aaa;
+      font-style: italic;
+      line-height: 1.5;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #eee;
+    }
+
+    /* ── Mobile layout ── */
+    @media (max-width: 768px) {
+      body { height: auto; min-height: 100vh; overflow-y: auto; }
+
+      .layout { flex-direction: column; overflow: visible; height: auto; }
+
+      .left-panel { overflow: visible; }
+
+      .main-content { overflow: visible; height: auto; }
+
+      .matrix-wrap {
+        flex: none;
+        height: 45vh;
+        min-height: 200px;
+        overflow: auto;
+      }
+
+      .detail-panel {
+        min-height: 260px;
+        max-height: none;
+      }
+
+      .chart-wrap { height: 190px; }
+
+      .sidebar {
+        width: 100%;
+        border-left: none;
+        border-top: 2px solid #d8d4cc;
+        flex-direction: row;
+        flex-wrap: wrap;
+        overflow: visible;
+      }
+
+      .sb-section { flex: 1 1 220px; }
+
+      .control-panel { gap: 12px; }
+
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Berkeley Tax Bundle Calculator</h1>
+  <p>Estimate the cumulative annual cost of proposed tax and bond measures for your household — not just one measure at a time</p>
+</header>
+
+<div class="layout">
+
+  <!-- ════════════════════ LEFT PANEL ════════════════════ -->
+  <div class="left-panel">
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+
+      <!-- Measures -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Measures</div>
+        <div id="measures-container"></div>
+      </div>
+
+      <!-- Baseline toggle -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Baseline</div>
+        <label class="baseline-toggle">
+          <input type="checkbox" id="cb-baseline" checked />
+          Include current taxes &amp; bonds
+        </label>
+        <div class="baseline-desc">Base prop. tax · existing bonds · parcel &amp; sales taxes</div>
+      </div>
+
+      <!-- Presets -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Scenario Presets</div>
+        <div class="preset-row">
+          <button class="preset-btn" data-preset="city-only">City Only</button>
+          <button class="preset-btn" data-preset="city-transit">City + Transit</button>
+          <button class="preset-btn" data-preset="full-2026">Full Plausible 2026 Ballot</button>
+        </div>
+      </div>
+
+      <!-- Household inputs -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Your Household</div>
+        <div class="inputs-row">
+          <div class="input-field">
+            <label>Monthly Taxable Spending ($)</label>
+            <input type="number" id="inp-spending" value="2000" min="0" step="100" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Projection settings -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Projection Settings</div>
+        <div class="inputs-row">
+          <div class="input-field">
+            <label>AV Growth (%/yr)</label>
+            <input type="number" id="inp-av-growth" value="2" min="0" max="15" step="0.5" />
+          </div>
+          <div class="input-field">
+            <label>Spending Inflation (%/yr)</label>
+            <input type="number" id="inp-inflation" value="3" min="0" max="15" step="0.5" />
+          </div>
+          <div class="input-field">
+            <label>Projection Years</label>
+            <input type="number" id="inp-years" value="30" min="5" max="50" step="5" />
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /control-panel -->
+
+    <!-- Matrix + Detail -->
+    <div class="main-content">
+      <div class="matrix-wrap" id="matrix-wrap"></div>
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-empty">Click any cell in the matrix above to see your projected costs over time</div>
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ════════════════════ SIDEBAR ════════════════════ -->
+  <div class="sidebar">
+
+    <div class="sb-section">
+      <div class="sb-title">Scenario Summary</div>
+      <div id="sb-summary"><div class="sb-empty">Select a cell in the matrix to see your cost summary</div></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Measure Breakdown</div>
+      <div id="sb-breakdown"><div class="sb-empty">Select a cell to see per-measure costs</div></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Assumptions</div>
+      <div id="sb-assumptions"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Reset</div>
+      <button class="reset-btn" id="btn-clear">Clear Selected Cell</button>
+      <button class="reset-btn" id="btn-reset">Reset All Inputs to Defaults</button>
+    </div>
+
+  </div><!-- /sidebar -->
+
+</div><!-- /layout -->
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// MEASURE DEFINITIONS  (all inline, no external JSON)
+// ════════════════════════════════════════════════════════════════
+const MEASURES = [
+  // ── Tier 1: Active Berkeley Proposals (on by default) ──
+  {
+    id: 'berkeley_bond',
+    label: 'Berkeley Infrastructure Bond',
+    shortLabel: 'Infra. Bond',
+    tag: 'draft',
+    tier: 1,
+    tierLabel: 'Tier 1 — Active Berkeley Proposals',
+    type: 'av_based',
+    rate: 22,          // $ per $100k AV
+    duration: 30,      // years until expiry (null = permanent)
+    defaultEnabled: true,
+    description: 'A general obligation bond funding city infrastructure (streets, buildings, parks). '
+      + 'Homeowners pay <strong>$22 per year for every $100,000 of assessed value</strong> — so a home '
+      + 'assessed at $700,000 pays roughly <strong>$154/year</strong>. Assessed value is typically '
+      + 'lower than market value and grows slowly under Prop 13. Expires after 30 years.',
+  },
+  {
+    id: 'berkeley_sales_tax',
+    label: 'Berkeley Sales Tax',
+    shortLabel: 'Berkeley Sales Tax',
+    tag: 'draft',
+    tier: 1,
+    tierLabel: null,
+    type: 'sales_tax',
+    rate: 0.005,       // 0.5%
+    duration: null,
+    defaultEnabled: true,
+    description: 'An additional <strong>½¢ on every dollar</strong> spent on taxable purchases in '
+      + 'Berkeley — that\'s <strong>0.5%</strong>. Groceries, prescription drugs, and some services '
+      + 'are exempt. On $2,000/month in taxable spending, this adds about <strong>$120/year</strong>. '
+      + 'No expiration.',
+  },
+  // ── Tier 2: Highly Probable Regional (on by default) ──
+  {
+    id: 'regional_transit',
+    label: 'Regional Transit Tax (BART / AC Transit / MTC)',
+    shortLabel: 'Transit Tax',
+    tag: 'probable',
+    tier: 2,
+    tierLabel: 'Tier 2 — Highly Probable Regional',
+    type: 'sales_tax',
+    rate: 0.005,       // 0.5%
+    duration: 14,
+    defaultEnabled: true,
+    description: 'A county-wide measure to fund BART, AC Transit, and regional transit planning. '
+      + 'Adds <strong>½¢ on every dollar</strong> (<strong>0.5%</strong>) of taxable purchases '
+      + 'throughout Alameda County — the same rate as the Berkeley Sales Tax above, applied on top '
+      + 'of it. Expires after <strong>14 years</strong>.',
+  },
+  // ── Tier 3: Plausible Additional (off by default) ──
+  {
+    id: 'busd_parcel',
+    label: 'BUSD Parcel Tax',
+    shortLabel: 'BUSD Parcel Tax',
+    tag: 'placeholder',
+    tier: 3,
+    tierLabel: 'Tier 3 — Plausible Additional',
+    type: 'flat',
+    rate: 300,         // $/year
+    duration: null,
+    defaultEnabled: false,
+    description: 'A flat annual fee of <strong>$300 per parcel</strong> levied on every property '
+      + 'owner in the Berkeley Unified School District, regardless of home size or assessed value. '
+      + 'Rate and duration are placeholders — actual ballot language may differ.',
+  },
+  {
+    id: 'busd_bond',
+    label: 'BUSD Bond',
+    shortLabel: 'BUSD Bond',
+    tag: 'placeholder',
+    tier: 3,
+    tierLabel: null,
+    type: 'av_based',
+    rate: 15,          // $ per $100k AV
+    duration: null,
+    defaultEnabled: false,
+    description: 'A school district bond to fund BUSD facilities and capital improvements. '
+      + 'Homeowners pay <strong>$15 per year for every $100,000 of assessed value</strong> — so a home '
+      + 'assessed at $700,000 pays roughly <strong>$105/year</strong>. Rate and duration are '
+      + 'placeholders — actual ballot language may differ.',
+  },
+  {
+    id: 'alameda_county',
+    label: 'Alameda County Measure',
+    shortLabel: 'County Measure',
+    tag: 'placeholder',
+    tier: 3,
+    tierLabel: null,
+    type: 'sales_tax',
+    rate: 0.0025,      // 0.25%
+    duration: null,
+    defaultEnabled: false,
+    description: 'A county-wide measure adding <strong>¼¢ on every dollar</strong> (<strong>0.25%</strong>) '
+      + 'to the sales tax on taxable purchases throughout Alameda County. On $2,000/month in spending, '
+      + 'this adds about <strong>$60/year</strong>. Rate and duration are placeholders.',
+  },
+];
+
+// ════════════════════════════════════════════════════════════════
+// INCUMBENT TAXES  (current ongoing obligations)
+// ════════════════════════════════════════════════════════════════
+
+// California homeowners' exemption (reduces taxable AV)
+const HO_EXEMPTION = 7_000;
+
+// Computation array — drives all math (projectCosts, incumbentTotal, chart annotations)
+// type 'av_exempt'  → rate × max(0, av − HO_EXEMPTION)
+// type 'sqft_based' → rate × sqft  (published $/sqft or estimated)
+// type 'flat'       → fixed $/yr
+const INCUMBENT_COMPUTE = [
+  // ── Property tax: Prop 13 base (1.0%) — permanent ──────────────
+  { id: 'base_prop',     shortLabel: 'Base Prop. Tax',   type: 'av_exempt',  rate: 0.01,            duration: null },
+  // ── Bond debt overlay (0.2323% total) — three staggered cohorts ─
+  { id: 'debt_short',    shortLabel: 'Bonds (5yr)',       type: 'av_exempt',  rate: 0.002323 * 0.25, duration: 5   },
+  { id: 'debt_mid',      shortLabel: 'Bonds (12yr)',      type: 'av_exempt',  rate: 0.002323 * 0.40, duration: 12  },
+  { id: 'debt_long',     shortLabel: 'Bonds (25yr)',      type: 'av_exempt',  rate: 0.002323 * 0.35, duration: 25  },
+  // ── City charges — sqft-based (published Berkeley rates) ────────
+  { id: 'city_library',  shortLabel: 'Library (City)',    type: 'sqft_based', rate: 0.28,            duration: null },
+  { id: 'city_lib_fund', shortLabel: 'Library Fund',      type: 'sqft_based', rate: 0.06,            duration: null },
+  { id: 'city_parks',    shortLabel: 'Parks (City)',      type: 'sqft_based', rate: 0.265,           duration: null },
+  { id: 'city_street',   shortLabel: 'Street (City)',     type: 'sqft_based', rate: 0.15,            duration: null },
+  // ── City charges — flat ──────────────────────────────────────────
+  { id: 'city_fire',     shortLabel: 'Fire (City)',       type: 'flat',       rate: 845,             duration: null },
+  { id: 'city_wildfire', shortLabel: 'Wildfire (City)',   type: 'flat',       rate: 532,             duration: null },
+  // ── School charges — sqft-based (estimated, normalized) ─────────
+  { id: 'sch_bsep',      shortLabel: 'BSEP',             type: 'sqft_based', rate: 0.44,            duration: null },
+  { id: 'sch_teacher',   shortLabel: 'Teacher Supp.',     type: 'sqft_based', rate: 0.30,            duration: null },
+  { id: 'sch_facilities',shortLabel: 'Sch. Facilities',  type: 'sqft_based', rate: 0.14,            duration: null },
+  // ── School charges — flat ────────────────────────────────────────
+  { id: 'sch_peralta',   shortLabel: 'Peralta',           type: 'flat',       rate: 130,             duration: null },
+  // ── Regional charges — sqft-based (linear approximation) ────────
+  { id: 'reg_stormwater',shortLabel: 'Stormwater',        type: 'sqft_based', rate: 0.163,           duration: null },
+  // ── Regional charges — flat ──────────────────────────────────────
+  { id: 'reg_transit',   shortLabel: 'AC Transit',        type: 'flat',       rate: 96,              duration: null },
+  { id: 'reg_mosquito',  shortLabel: 'Mosquito Ctrl',     type: 'flat',       rate: 29,              duration: null },
+  { id: 'reg_bay',       shortLabel: 'Bay Restoration',   type: 'flat',       rate: 12,              duration: null },
+  { id: 'reg_parks',     shortLabel: 'Regional Parks',    type: 'flat',       rate: 448,             duration: null },
+];
+
+// Display structure — jurisdictional rollup for sidebar (two categories, expandable fixed charges)
+const INCUMBENT_ROLLUP = [
+  {
+    id: 'prop_tax_cat',
+    label: 'Property Taxes',
+    note: 'Applied to assessed value minus $7k homeowners\' exemption',
+    tooltip: 'Berkeley property owners pay a composite rate of ~1.2323% of assessed value (after the $7,000 homeowners\' exemption). This covers the California Prop 13 base (1.0%) plus the current voter-approved bond debt service overlay (~0.2323%). The bond portion steps down as existing bonds mature over the next 25 years.',
+    computeIds: ['base_prop', 'debt_short', 'debt_mid', 'debt_long'],
+    subitems: [
+      { label: 'State / County Base (Prop 13)',  computeIds: ['base_prop'],  note: '1.0% · permanent',     rate: '1.0000%' },
+      { label: 'County Admin',                   computeIds: [],             note: '~0.01% · permanent',   rate: '0.0100%', fixedCost: av => Math.max(0, av - HO_EXEMPTION) * 0.0001 },
+      { label: 'City of Berkeley',               computeIds: [],             note: '~0.06% · permanent',   rate: '0.0600%', fixedCost: av => Math.max(0, av - HO_EXEMPTION) * 0.0006 },
+      { label: 'School Districts',               computeIds: [],             note: '~0.115% · permanent',  rate: '0.1150%', fixedCost: av => Math.max(0, av - HO_EXEMPTION) * 0.00115 },
+      { label: 'BART / Transit',                 computeIds: [],             note: '~0.0473% · permanent', rate: '0.0473%', fixedCost: av => Math.max(0, av - HO_EXEMPTION) * 0.000473 },
+      { label: 'Voter-Approved Bond Debt',       computeIds: ['debt_short','debt_mid','debt_long'], note: '~0.2323% total · expires yr 5–25', rate: '0.2323%' },
+    ],
+  },
+  {
+    id: 'fixed_charges_cat',
+    label: 'Fixed Annual Charges',
+    note: 'Parcel taxes and special assessments — mix of sqft-based and flat charges',
+    tooltip: 'In addition to percentage-based property taxes, Berkeley homeowners pay annual parcel taxes and special assessments. Many are assessed per square foot of building area (e.g., library, parks, school programs); others are flat amounts regardless of home size. Total varies by home size — a 1,500 sqft home pays roughly $5,400/yr; a 3,000 sqft home roughly $8,000/yr. All are modeled as renewing.',
+    computeIds: ['city_library','city_lib_fund','city_parks','city_street','city_fire','city_wildfire',
+                 'sch_bsep','sch_teacher','sch_facilities','sch_peralta',
+                 'reg_stormwater','reg_transit','reg_mosquito','reg_bay','reg_parks'],
+    expandable: true,
+    subitems: [
+      // City — sqft-based (published rates)
+      { label: 'Library Services (City)',          computeIds: ['city_library'],    note: '$0.28/sqft · renewing'         },
+      { label: 'Library Funding Measure (City)',   computeIds: ['city_lib_fund'],   note: '$0.06/sqft · renewing'         },
+      { label: 'Parks & Landscaping (City)',       computeIds: ['city_parks'],      note: '$0.265/sqft · renewing'        },
+      { label: 'Street Repair (City)',             computeIds: ['city_street'],     note: '$0.15/sqft · renewing'         },
+      // City — flat
+      { label: 'Fire & Emergency Services (City)', computeIds: ['city_fire'],       note: '$845 flat · renewing'          },
+      { label: 'Wildfire Prevention (City)',       computeIds: ['city_wildfire'],   note: '$532 flat · renewing'          },
+      // Schools — sqft-based (estimated, normalized)
+      { label: 'School Programs (BSEP)',           computeIds: ['sch_bsep'],        note: '~$0.44/sqft est. · renewing'   },
+      { label: 'Teacher Support (Schools)',        computeIds: ['sch_teacher'],     note: '~$0.30/sqft est. · renewing'   },
+      { label: 'School Facilities Maint.',         computeIds: ['sch_facilities'],  note: '~$0.14/sqft est. · renewing'   },
+      // Schools — flat
+      { label: 'Community College (Peralta)',      computeIds: ['sch_peralta'],     note: '$130 flat · renewing'          },
+      // Regional — sqft-based (linear approximation)
+      { label: 'Sewer & Stormwater',               computeIds: ['reg_stormwater'],  note: '~$0.163/sqft est. · renewing'  },
+      // Regional — flat
+      { label: 'AC Transit Funding',               computeIds: ['reg_transit'],     note: '$96 flat · renewing'           },
+      { label: 'Mosquito & Vector Control',        computeIds: ['reg_mosquito'],    note: '$29 flat · renewing'           },
+      { label: 'Bay Restoration Program',          computeIds: ['reg_bay'],         note: '$12 flat · renewing'           },
+      { label: 'Regional Parks Funding',           computeIds: ['reg_parks'],       note: '$448 flat · renewing'          },
+    ],
+  },
+];
+
+// ════════════════════════════════════════════════════════════════
+// BAND GENERATION
+// ════════════════════════════════════════════════════════════════
+function makeBands(min, max, step) {
+  const bands = [];
+  for (let v = min; v < max; v += step) {
+    bands.push({ lo: v, hi: v + step, mid: v + step / 2 });
+  }
+  return bands;
+}
+
+const AV_BANDS   = makeBands(300_000, 2_500_000, 50_000);   // 44 rows
+const SQFT_BANDS = makeBands(800, 4000, 100);                // 32 cols
+
+// ════════════════════════════════════════════════════════════════
+// SCENARIO PRESETS
+// ════════════════════════════════════════════════════════════════
+const PRESETS = {
+  'city-only':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:false, busd_parcel:false, busd_bond:false, alameda_county:false },
+  'city-transit':{ berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  busd_parcel:false, busd_bond:false, alameda_county:false },
+  'full-2026':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  busd_parcel:true,  busd_bond:true,  alameda_county:true  },
+};
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let state = {
+  enabled: Object.fromEntries(MEASURES.map(m => [m.id, m.defaultEnabled])),
+  includeBaseline: true,
+  monthlySpending: 2000,
+  avGrowth:   0.02,
+  inflation:  0.03,
+  projYears:  30,
+  selAV:   null,   // index into AV_BANDS
+  selSqft: null,   // index into SQFT_BANDS
+};
+
+let chart = null;
+const expandedRollup = new Set(); // tracks which fixed-charge category rows are expanded
+
+// ════════════════════════════════════════════════════════════════
+// COMPUTATION
+// ════════════════════════════════════════════════════════════════
+// Low-level cost of one measure at given AV/spending — no enabled-state check
+function rawCost(m, curAV, sqft, curSpd) {
+  switch (m.type) {
+    case 'av_based':   return (curAV / 100_000) * m.rate;
+    case 'av_exempt':  return Math.max(0, curAV - HO_EXEMPTION) * m.rate;
+    case 'sqft_based': return sqft * m.rate;
+    case 'flat':       return m.rate;
+    case 'sales_tax':  return curSpd * 12 * m.rate;
+    default: return 0;
+  }
+}
+
+// Proposed measure cost (respects enabled state)
+function measureAnnualCost(m, av, sqft, spending) {
+  if (!state.enabled[m.id]) return 0;
+  return rawCost(m, av, sqft, spending);
+}
+
+// Proposed measures subtotal
+function proposedTotal(av, sqft, spending) {
+  return MEASURES.reduce((s, m) => s + measureAnnualCost(m, av, sqft, spending), 0);
+}
+
+// Incumbent taxes subtotal (when baseline toggle is on)
+function incumbentTotal(av, sqft, spending) {
+  if (!state.includeBaseline) return 0;
+  return INCUMBENT_COMPUTE.reduce((s, m) => s + rawCost(m, av, sqft, spending), 0);
+}
+
+function totalAnnualCost(av, sqft, spending) {
+  return proposedTotal(av, sqft, spending) + incumbentTotal(av, sqft, spending);
+}
+
+// Returns array [year0, year1, ..., yearN] of annual costs
+function projectCosts(av, sqft, spending) {
+  const { avGrowth, inflation, projYears } = state;
+  const out = [];
+  let curAV  = av;
+  let curSpd = spending;
+  for (let yr = 0; yr <= projYears; yr++) {
+    let cost = 0;
+    // Proposed measures
+    for (const m of MEASURES) {
+      if (!state.enabled[m.id]) continue;
+      if (m.duration !== null && yr >= m.duration) continue;
+      cost += rawCost(m, curAV, sqft, curSpd);
+    }
+    // Incumbent taxes (when baseline toggle is on)
+    if (state.includeBaseline) {
+      for (const m of INCUMBENT_COMPUTE) {
+        if (m.duration !== null && yr >= m.duration) continue;
+        cost += rawCost(m, curAV, sqft, curSpd);
+      }
+    }
+    out.push(cost);
+    curAV  *= (1 + avGrowth);
+    curSpd *= (1 + inflation);
+  }
+  return out;
+}
+
+// ════════════════════════════════════════════════════════════════
+// FORMATTING
+// ════════════════════════════════════════════════════════════════
+const fmt$ = n => '$' + Math.round(n).toLocaleString();
+
+function fmtAV(n) {
+  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1) + 'M';
+  return '$' + (n / 1000) + 'k';
+}
+
+function fmtPct(r) { return (r * 100).toFixed(1) + '%'; }
+
+// ════════════════════════════════════════════════════════════════
+// COLOR SCALE  (green → yellow → orange → red)
+// ════════════════════════════════════════════════════════════════
+function costColor(cost, lo, hi) {
+  const t = hi > lo ? Math.min(1, (cost - lo) / (hi - lo)) : 0;
+  // 0 → #a8d5a2 (soft green)  0.5 → #f6d860 (yellow)  1 → #e8694a (red-orange)
+  let r, g, b;
+  if (t < 0.5) {
+    const u = t * 2;
+    r = Math.round(168 + (246 - 168) * u);
+    g = Math.round(213 + (216 - 213) * u);
+    b = Math.round(162 + (96  - 162) * u);
+  } else {
+    const u = (t - 0.5) * 2;
+    r = Math.round(246 + (232 - 246) * u);
+    g = Math.round(216 + (105 - 216) * u);
+    b = Math.round(96  + (74  - 96)  * u);
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
+function labelColor(t) {
+  return t > 0.55 ? '#4a1a00' : '#1a1a1a';
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAG HTML HELPER
+// ════════════════════════════════════════════════════════════════
+const TAG_CLASS = { draft:'tag-draft', probable:'tag-probable', placeholder:'tag-placeholder' };
+function tagHTML(m) {
+  return `<span class="tag ${TAG_CLASS[m.tag] || ''}">${m.tag}</span>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// ROLLUP TOOLTIPS  (static panels appended to body once)
+// ════════════════════════════════════════════════════════════════
+function initRollupTooltips() {
+  for (const cat of INCUMBENT_ROLLUP) {
+    const panel = document.createElement('div');
+    panel.id = 'rollup-tt-' + cat.id;
+    panel.className = 'rollup-tooltip-panel';
+    panel.hidden = true;
+    panel.textContent = cat.tooltip;
+    document.body.appendChild(panel);
+  }
+}
+
+// Build HTML for one rollup category row (property taxes or fixed charges)
+function rollupCatHTML(cat, av, sqft, total) {
+  const cost = cat.computeIds.reduce((s, id) => {
+    const m = INCUMBENT_COMPUTE.find(x => x.id === id);
+    return s + (m ? rawCost(m, av, sqft, 0) : 0);
+  }, 0);
+  // Use rawCost via computeIds when populated; fall back to fixedCost(av, sqft) for
+  // display-only subitems (e.g. jurisdiction sub-splits of property tax)
+  const subHTML = cat.subitems.map(sub => {
+    let subCost;
+    if (sub.computeIds && sub.computeIds.length > 0) {
+      subCost = sub.computeIds.reduce((s, id) => {
+        const m = INCUMBENT_COMPUTE.find(x => x.id === id);
+        return s + (m ? rawCost(m, av, sqft, 0) : 0);
+      }, 0);
+    } else if (sub.fixedCost) {
+      subCost = sub.fixedCost(av, sqft);
+    } else {
+      subCost = 0;
+    }
+    return `<div class="rollup-subitem">
+      <span class="rollup-sub-label">${sub.label}
+        <span class="rollup-sub-note">${sub.note}</span>
+      </span>
+      <span class="rollup-sub-amount">${fmt$(subCost)}</span>
+    </div>`;
+  }).join('');
+
+  const pct = total > 0 ? Math.round(cost / total * 100) : 0;
+  const expandBtn = cat.expandable
+    ? `<button class="rollup-expand-btn" data-expand="${cat.id}" title="Show breakdown"
+        aria-expanded="${expandedRollup.has(cat.id)}">${expandedRollup.has(cat.id) ? '▾' : '▸'}</button>`
+    : '';
+  const subBlock = (cat.expandable && expandedRollup.has(cat.id)) || (!cat.expandable)
+    ? `<div class="rollup-subitems">${subHTML}</div>`
+    : '';
+
+  return `<div class="rollup-cat">
+    <div class="rollup-cat-hdr">
+      <span class="rollup-cat-label">
+        <span>${cat.label}</span>${expandBtn}
+        <button class="rollup-tt-btn" data-rollup-tooltip="${cat.id}">what is this?</button>
+      </span>
+      <span class="rollup-cat-amount">${fmt$(cost)} <span class="rollup-cat-note">${pct}%</span></span>
+    </div>
+    ${subBlock}
+  </div>`;
+}
+
+// Full incumbent breakdown section HTML
+function renderIncumbentRollupHTML(av, sqft, total) {
+  return INCUMBENT_ROLLUP.map(cat => rollupCatHTML(cat, av, sqft, total)).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// INIT CHECKBOXES  (called once)
+// ════════════════════════════════════════════════════════════════
+function closeAllDescs() {
+  for (const m of MEASURES) {
+    const d = document.getElementById('desc-' + m.id);
+    if (d) d.hidden = true;
+  }
+  document.querySelectorAll('[id^="rollup-tt-"]').forEach(p => { p.hidden = true; });
+}
+
+function initCheckboxes() {
+  const container = document.getElementById('measures-container');
+  container.innerHTML = '';
+
+  for (const m of MEASURES) {
+    if (m.tierLabel) {
+      const div = document.createElement('div');
+      div.className = 'tier-divider';
+      div.textContent = m.tierLabel;
+      container.appendChild(div);
+    }
+
+    // Row: checkbox label + "what is this?" link
+    const row = document.createElement('div');
+    row.className = 'measure-row';
+
+    const label = document.createElement('label');
+    label.className = 'measure-label';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'cb-' + m.id;
+    cb.checked = state.enabled[m.id];
+    cb.addEventListener('change', () => {
+      state.enabled[m.id] = cb.checked;
+      update();
+    });
+    label.appendChild(cb);
+    label.insertAdjacentHTML('beforeend', ` ${m.label} ${tagHTML(m)}`);
+    row.appendChild(label);
+
+    if (m.description) {
+      const link = document.createElement('button');
+      link.className = 'info-link';
+      link.textContent = 'what is this?';
+      link.setAttribute('aria-expanded', 'false');
+      link.setAttribute('aria-controls', 'desc-' + m.id);
+
+      link.addEventListener('click', e => {
+        e.stopPropagation();
+        const desc = document.getElementById('desc-' + m.id);
+        const isOpen = !desc.hidden;
+        closeAllDescs();
+        if (!isOpen) {
+          // Position the floating panel near the link
+          const r = link.getBoundingClientRect();
+          const panelW = 310;
+          let left = r.left;
+          if (left + panelW > window.innerWidth - 10) left = window.innerWidth - panelW - 10;
+          left = Math.max(10, left);
+          desc.style.top  = (r.bottom + 5) + 'px';
+          desc.style.left = left + 'px';
+          desc.hidden = false;
+          link.setAttribute('aria-expanded', 'true');
+        } else {
+          link.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      row.appendChild(link);
+    }
+
+    container.appendChild(row);
+
+    // Description panel — appended to <body> so no parent overflow:hidden clips it
+    if (m.description) {
+      const desc = document.createElement('div');
+      desc.className = 'measure-desc';
+      desc.id = 'desc-' + m.id;
+      desc.hidden = true;
+      desc.addEventListener('click', e => e.stopPropagation()); // don't close when clicking inside
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'desc-close';
+      closeBtn.textContent = '×';
+      closeBtn.addEventListener('click', e => { e.stopPropagation(); desc.hidden = true; });
+      desc.appendChild(closeBtn);
+
+      const text = document.createElement('span');
+      text.innerHTML = m.description;
+      desc.appendChild(text);
+
+      document.body.appendChild(desc);
+    }
+  }
+}
+
+function syncCheckboxes() {
+  for (const m of MEASURES) {
+    const cb = document.getElementById('cb-' + m.id);
+    if (cb) cb.checked = state.enabled[m.id];
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER MATRIX
+// ════════════════════════════════════════════════════════════════
+function renderMatrix() {
+  const wrap = document.getElementById('matrix-wrap');
+  const spending = state.monthlySpending;
+
+  // Compute all costs + find range for color scale
+  let lo = Infinity, hi = -Infinity;
+  const costs = AV_BANDS.map(avb =>
+    SQFT_BANDS.map(sfb => {
+      const c = totalAnnualCost(avb.mid, sfb.mid, spending);
+      if (c < lo) lo = c;
+      if (c > hi) hi = c;
+      return c;
+    })
+  );
+
+  // If table already exists, update in-place (preserves scroll position)
+  let table = wrap.querySelector('table.matrix-table');
+  if (table) {
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach((tr, r) => {
+      const cells = tr.querySelectorAll('td');
+      cells.forEach((td, c) => {
+        const cost = costs[r][c];
+        const t = hi > lo ? (cost - lo) / (hi - lo) : 0;
+        td.textContent = fmt$(cost);
+        td.style.background = costColor(cost, lo, hi);
+        td.style.color = labelColor(t);
+        td.classList.toggle('selected', r === state.selAV && c === state.selSqft);
+      });
+    });
+    return;
+  }
+
+  // First render: build table from scratch
+  table = document.createElement('table');
+  table.className = 'matrix-table';
+
+  // ── thead ──
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+
+  const corner = document.createElement('th');
+  corner.className = 'corner';
+  corner.innerHTML = 'AV ↓ &nbsp; sqft →';
+  headRow.appendChild(corner);
+
+  for (const sfb of SQFT_BANDS) {
+    const th = document.createElement('th');
+    th.textContent = sfb.lo.toLocaleString();
+    headRow.appendChild(th);
+  }
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  // ── tbody ──
+  const tbody = document.createElement('tbody');
+  for (let r = 0; r < AV_BANDS.length; r++) {
+    const avBand = AV_BANDS[r];
+    const tr = document.createElement('tr');
+
+    const rh = document.createElement('th');
+    rh.textContent = fmtAV(avBand.lo);
+    tr.appendChild(rh);
+
+    for (let c = 0; c < SQFT_BANDS.length; c++) {
+      const cost = costs[r][c];
+      const t = hi > lo ? (cost - lo) / (hi - lo) : 0;
+
+      const td = document.createElement('td');
+      td.textContent = fmt$(cost);
+      td.style.background = costColor(cost, lo, hi);
+      td.style.color = labelColor(t);
+      if (r === state.selAV && c === state.selSqft) td.classList.add('selected');
+
+      // Capture r, c in closure
+      td.addEventListener('click', ((row, col) => () => {
+        state.selAV   = row;
+        state.selSqft = col;
+        update();
+      })(r, c));
+
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  wrap.innerHTML = '';
+  wrap.appendChild(table);
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER DETAIL PANEL + CHART
+// ════════════════════════════════════════════════════════════════
+function renderDetail() {
+  const panel = document.getElementById('detail-panel');
+
+  if (state.selAV === null || state.selSqft === null) {
+    if (chart) { chart.destroy(); chart = null; }
+    panel.innerHTML = '<div class="detail-empty">Click any cell in the matrix above to see your projected costs over time</div>';
+    return;
+  }
+
+  const avBand   = AV_BANDS[state.selAV];
+  const sqftBand = SQFT_BANDS[state.selSqft];
+  const spending = state.monthlySpending;
+  const current  = totalAnnualCost(avBand.mid, sqftBand.mid, spending);
+  const proj     = projectCosts(avBand.mid, sqftBand.mid, spending);
+  const peakCost = Math.max(...proj);
+  const peakYear = proj.indexOf(peakCost);
+  const finalCost = proj[proj.length - 1];
+  const peakAtEnd = peakYear === proj.length - 1;
+  const futureLabel = peakAtEnd
+    ? `today &rarr; <strong>${fmt$(finalCost)}/yr</strong> in yr ${state.projYears}`
+    : `today &rarr; peak <strong>${fmt$(peakCost)}/yr</strong> in yr ${peakYear}, then ${fmt$(finalCost)}/yr by yr ${state.projYears}`;
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <span class="detail-title">
+        AV ${fmtAV(avBand.lo)}–${fmtAV(avBand.hi)} &nbsp;|&nbsp;
+        ${sqftBand.lo.toLocaleString()}–${sqftBand.hi.toLocaleString()} sqft
+      </span>
+      <span class="detail-cost-now">${fmt$(current)}/yr</span>
+      <span class="detail-cost-future">${futureLabel}</span>
+    </div>
+    <div class="chart-wrap"><canvas id="proj-canvas"></canvas></div>
+  `;
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  const labels = proj.map((_, i) => i === 0 ? 'Now' : `Yr ${i}`);
+  const ctx    = document.getElementById('proj-canvas').getContext('2d');
+
+  // Build expiry-line annotations for measures that end within the projection window
+  const annotations = {};
+
+  // Proposed measure expirations (red)
+  for (const m of MEASURES) {
+    if (!state.enabled[m.id] || m.duration === null) continue;
+    if (m.duration > state.projYears) continue;
+    const xLabel = m.duration === 0 ? 'Now' : `Yr ${m.duration}`;
+    annotations[`expire_${m.id}`] = {
+      type: 'line', xMin: xLabel, xMax: xLabel,
+      borderColor: 'rgba(185,28,28,0.55)', borderWidth: 1.5, borderDash: [5, 4],
+      label: {
+        display: true, content: `${m.shortLabel} ends`,
+        position: 'start', yAdjust: 4,
+        backgroundColor: 'rgba(255,255,255,0.92)', color: '#b91c1c',
+        font: { size: 9, weight: '600' }, padding: { x: 4, y: 2 },
+        borderRadius: 3, borderColor: 'rgba(185,28,28,0.3)', borderWidth: 1,
+      },
+    };
+  }
+
+  // Incumbent bond cohort step-downs (muted gray)
+  if (state.includeBaseline) {
+    for (const m of INCUMBENT_COMPUTE) {
+      if (m.duration === null || m.duration > state.projYears) continue;
+      const xLabel = `Yr ${m.duration}`;
+      annotations[`expire_${m.id}`] = {
+        type: 'line', xMin: xLabel, xMax: xLabel,
+        borderColor: 'rgba(100,100,120,0.4)', borderWidth: 1.5, borderDash: [4, 4],
+        label: {
+          display: true, content: `${m.shortLabel} ends`,
+          position: 'end', yAdjust: -4,
+          backgroundColor: 'rgba(245,245,248,0.95)', color: '#666',
+          font: { size: 9, weight: '600' }, padding: { x: 4, y: 2 },
+          borderRadius: 3, borderColor: 'rgba(120,120,140,0.3)', borderWidth: 1,
+        },
+      };
+    }
+  }
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Annual Cost',
+        data: proj,
+        borderColor: '#1a3a5c',
+        backgroundColor: 'rgba(26,58,92,0.09)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 200 },
+      // Tooltip fires anywhere in the vertical column — no need to hit a point precisely
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => fmt$(ctx.raw) + ' / yr' },
+        },
+        annotation: { annotations },
+      },
+      scales: {
+        y: {
+          ticks: { callback: v => fmt$(v), font: { size: 10 }, maxTicksLimit: 5 },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        x: {
+          ticks: { font: { size: 10 }, maxTicksLimit: 12 },
+          grid: { display: false },
+        },
+      },
+    },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER SIDEBAR
+// ════════════════════════════════════════════════════════════════
+function renderSidebar() {
+  const sbSummary    = document.getElementById('sb-summary');
+  const sbBreakdown  = document.getElementById('sb-breakdown');
+  const sbAssumptions= document.getElementById('sb-assumptions');
+
+  // Assumptions — always shown
+  sbAssumptions.innerHTML = `
+    <div class="assump-row"><span>Monthly Taxable Spending</span><span>${fmt$(state.monthlySpending)}/mo</span></div>
+    <div class="assump-row"><span>AV Growth Rate</span><span>${fmtPct(state.avGrowth)}/yr</span></div>
+    <div class="assump-row"><span>Spending Inflation</span><span>${fmtPct(state.inflation)}/yr</span></div>
+    <div class="assump-row"><span>Time Horizon</span><span>${state.projYears} years</span></div>
+    <div class="sb-disclosure">Taxes are modeled as continuing over time, reflecting historical renewal patterns. Bonds expire as scheduled. Actual future taxes may vary.</div>
+    <div class="sb-disclosure">Property tax rates shown are estimates based on publicly available Alameda County rate data. Bond debt service rates decline as existing bonds mature.</div>
+  `;
+
+  if (state.selAV === null || state.selSqft === null) {
+    sbSummary.innerHTML   = '<div class="sb-empty">Select a cell in the matrix to see your cost summary</div>';
+    sbBreakdown.innerHTML = '<div class="sb-empty">Select a cell to see per-measure costs</div>';
+    return;
+  }
+
+  const avBand   = AV_BANDS[state.selAV];
+  const sqftBand = SQFT_BANDS[state.selSqft];
+  const av       = avBand.mid;
+  const sqft     = sqftBand.mid;
+  const spending = state.monthlySpending;
+  const incCost  = incumbentTotal(av, sqft, spending);
+  const propCost = proposedTotal(av, sqft, spending);
+  const current  = incCost + propCost;
+  const proj     = projectCosts(av, sqft, spending);
+  const peakCost = Math.max(...proj);
+  const peakYear = proj.indexOf(peakCost);
+  const finalCost = proj[proj.length - 1];
+  const peakAtEnd = peakYear === proj.length - 1;
+  const active   = MEASURES.filter(m => state.enabled[m.id]);
+
+  // Projected-cost line
+  let projectedHTML;
+  if (peakAtEnd) {
+    projectedHTML = `In yr ${state.projYears}: <strong>${fmt$(finalCost)}/yr</strong>
+      <span class="proj-note">(rises with AV &amp; inflation)</span>`;
+  } else {
+    projectedHTML = `Peak: <strong>${fmt$(peakCost)}/yr</strong> in yr ${peakYear}
+      <span class="proj-note"> — drops to ${fmt$(finalCost)}/yr by yr ${state.projYears} as bonds expire</span>`;
+  }
+
+  // Summary block — three-way split when baseline is on, simple total when off
+  let summaryHTML;
+  if (state.includeBaseline) {
+    summaryHTML = `
+      <div class="split-row">
+        <span class="split-label">Current taxes</span>
+        <span class="split-amount incumbent">${fmt$(incCost)}/yr</span>
+      </div>
+      <div class="split-row">
+        <span class="split-label">+ New measures</span>
+        <span class="split-amount proposed">+${fmt$(propCost)}/yr</span>
+      </div>
+      <div class="split-row total-row">
+        <span class="split-label total">Total today</span>
+        <span class="split-amount total">${fmt$(current)}/yr</span>
+      </div>`;
+  } else {
+    summaryHTML = `
+      <div class="sb-total">${fmt$(current)}<span style="font-size:14px;font-weight:400">/yr</span></div>
+      <div class="sb-total-label">proposed measures only</div>`;
+  }
+
+  sbSummary.innerHTML = `
+    ${summaryHTML}
+    <div class="sb-projected" style="margin-top:8px">${projectedHTML}</div>
+    <div class="sb-measure-count">${active.length} proposed measure${active.length !== 1 ? 's' : ''} selected
+      &nbsp;·&nbsp; AV ${fmtAV(avBand.lo)} band &nbsp;·&nbsp; ${sqftBand.lo.toLocaleString()} sqft band</div>
+  `;
+
+  // Breakdown — incumbent rollup (jurisdictional) + proposed measures table
+  let html = '';
+
+  if (state.includeBaseline) {
+    html += `<div class="breakdown-group-hdr" style="border-top:none;padding-top:0">Current Taxes (est.)</div>`;
+    html += renderIncumbentRollupHTML(av, sqft, current);
+  }
+
+  // Proposed section
+  const proposedRows = MEASURES
+    .filter(m => state.enabled[m.id])
+    .map(m => ({ m, cost: measureAnnualCost(m, av, sqft, spending) }))
+    .sort((a, b) => b.cost - a.cost);
+
+  html += `<div class="breakdown-group-hdr">New Proposed Measures</div>`;
+  html += `<table class="breakdown-table"><tbody>`;
+  if (proposedRows.length === 0) {
+    html += `<tr><td colspan="3" style="font-style:italic;color:#ccc;font-size:11px;padding:4px 0">None selected</td></tr>`;
+  } else {
+    for (const { m, cost } of proposedRows) {
+      const pct = current > 0 ? Math.round(cost / current * 100) : 0;
+      html += `<tr>
+        <td><div class="measure-name-cell">${m.label} ${tagHTML(m)}</div></td>
+        <td>${fmt$(cost)}</td>
+        <td>${pct}%</td>
+      </tr>`;
+    }
+  }
+  html += `</tbody></table>`;
+
+  sbBreakdown.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════════
+// UPDATE  (called on any state change)
+// ════════════════════════════════════════════════════════════════
+function update() {
+  syncCheckboxes();
+  renderMatrix();
+  renderDetail();
+  renderSidebar();
+}
+
+// ════════════════════════════════════════════════════════════════
+// EVENT WIRING
+// ════════════════════════════════════════════════════════════════
+
+// Number inputs
+document.getElementById('inp-spending').addEventListener('input', e => {
+  state.monthlySpending = Math.max(0, parseFloat(e.target.value) || 0);
+  update();
+});
+document.getElementById('inp-av-growth').addEventListener('input', e => {
+  state.avGrowth = (parseFloat(e.target.value) || 0) / 100;
+  update();
+});
+document.getElementById('inp-inflation').addEventListener('input', e => {
+  state.inflation = (parseFloat(e.target.value) || 0) / 100;
+  update();
+});
+document.getElementById('inp-years').addEventListener('input', e => {
+  state.projYears = Math.max(1, parseInt(e.target.value) || 30);
+  update();
+});
+
+// Preset buttons
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const preset = PRESETS[btn.dataset.preset];
+    if (preset) { state.enabled = { ...preset }; update(); }
+  });
+});
+
+// Baseline toggle
+document.getElementById('cb-baseline').addEventListener('change', e => {
+  state.includeBaseline = e.target.checked;
+  update();
+});
+
+// Close floating description panels when clicking elsewhere
+document.addEventListener('click', closeAllDescs);
+
+// Sidebar rollup: expand/collapse fixed-charge rows & show tooltips
+document.getElementById('sb-breakdown').addEventListener('click', e => {
+  // Expand toggle
+  const expandBtn = e.target.closest('[data-expand]');
+  if (expandBtn) {
+    e.stopPropagation();
+    const catId = expandBtn.dataset.expand;
+    if (expandedRollup.has(catId)) expandedRollup.delete(catId);
+    else expandedRollup.add(catId);
+    renderSidebar();
+    return;
+  }
+  // Tooltip button
+  const ttBtn = e.target.closest('[data-rollup-tooltip]');
+  if (ttBtn) {
+    e.stopPropagation();
+    closeAllDescs();
+    const catId = ttBtn.dataset.rollupTooltip;
+    const panel = document.getElementById('rollup-tt-' + catId);
+    if (!panel) return;
+    panel.hidden = false;
+    const rect = ttBtn.getBoundingClientRect();
+    const panelW = 280;
+    // Prefer opening to the left; fall back right if not enough room
+    if (rect.left >= panelW + 16) {
+      panel.style.left  = rect.left + 'px';
+      panel.style.top   = (rect.bottom + 6) + 'px';
+      panel.className = 'rollup-tooltip-panel left';
+    } else {
+      panel.style.left  = rect.right + 'px';
+      panel.style.top   = (rect.bottom + 6) + 'px';
+      panel.className = 'rollup-tooltip-panel right';
+    }
+    return;
+  }
+});
+
+// Reset controls
+document.getElementById('btn-clear').addEventListener('click', () => {
+  state.selAV = null;
+  state.selSqft = null;
+  update();
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  state.enabled         = Object.fromEntries(MEASURES.map(m => [m.id, m.defaultEnabled]));
+  state.includeBaseline = true;
+  state.monthlySpending = 2000;
+  state.avGrowth        = 0.02;
+  state.inflation       = 0.03;
+  state.projYears       = 30;
+  state.selAV           = null;
+  state.selSqft         = null;
+  // Sync input elements
+  document.getElementById('inp-spending').value   = 2000;
+  document.getElementById('inp-av-growth').value  = 2;
+  document.getElementById('inp-inflation').value  = 3;
+  document.getElementById('inp-years').value      = 30;
+  document.getElementById('cb-baseline').checked  = true;
+  update();
+});
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+initCheckboxes();
+initRollupTooltips();
+update();
+</script>
+</body>
+</html>
