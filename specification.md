@@ -166,23 +166,18 @@ Each measure definition must include:
 
 **(included but off by default)**
 
-#### D. BUSD Parcel Tax (placeholder)
+#### D. Public Bank Parcel Tax (placeholder)
 
-* Type: flat parcel tax
-* Default: $300/year
-* Label: “BUSD Parcel Tax (placeholder)”
+* Type: sqft-based
+* Default: $0.06/sqft (dwelling units; other property types pay $0.09/sqft, not modeled)
+* Duration: 6 years
+* Label: “Public Bank Parcel Tax (placeholder)”
 
-#### E. BUSD Bond (placeholder)
+#### E. Arts Parcel Tax (placeholder)
 
-* Type: AV-based
-* Default: $15 per $100k AV
-* Label: “BUSD Bond (placeholder)”
-
-#### F. Alameda County Measure (placeholder)
-
-* Type: sales tax
-* Default: +0.25%
-* Label: “Alameda County Measure (placeholder)”
+* Type: sqft-based
+* Default: $0.07/sqft of property improvements
+* Label: “Arts Parcel Tax (placeholder)”
 
 ---
 

@@ -710,50 +710,36 @@ const MEASURES = [
   },
   // ── Tier 3: Plausible Additional (off by default) ──
   {
-    id: 'busd_parcel',
-    label: 'BUSD Parcel Tax',
-    shortLabel: 'BUSD Parcel Tax',
+    id: 'public_bank',
+    label: 'Public Bank Parcel Tax',
+    shortLabel: 'Public Bank',
     tag: 'placeholder',
     tier: 3,
     tierLabel: 'Tier 3 — Plausible Additional',
-    type: 'flat',
-    rate: 300,         // $/year
-    duration: null,
+    type: 'sqft_based',
+    rate: 0.06,        // $/sqft for dwelling units
+    duration: 6,
     defaultEnabled: false,
-    description: 'A flat annual fee of <strong>$300 per parcel</strong> levied on every property '
-      + 'owner in the Berkeley Unified School District, regardless of home size or assessed value. '
-      + 'Rate and duration are placeholders — actual ballot language may differ.',
+    description: 'A temporary six-year parcel tax to fund a proposed public bank. Dwelling units pay '
+      + '<strong>$0.06 per square foot</strong> (other property types pay $0.09/sqft, not modeled here). '
+      + 'A 1,500 sqft home pays roughly <strong>$90/year</strong>. Expires after <strong>6 years</strong>.',
   },
   {
-    id: 'busd_bond',
-    label: 'BUSD Bond',
-    shortLabel: 'BUSD Bond',
+    id: 'arts_parcel',
+    label: 'Arts Parcel Tax',
+    shortLabel: 'Arts Tax',
     tag: 'placeholder',
     tier: 3,
     tierLabel: null,
-    type: 'av_based',
-    rate: 15,          // $ per $100k AV
+    type: 'sqft_based',
+    rate: 0.07,        // $/sqft of property improvements
     duration: null,
     defaultEnabled: false,
-    description: 'A school district bond to fund BUSD facilities and capital improvements. '
-      + 'Homeowners pay <strong>$15 per year for every $100,000 of assessed value</strong> — so a home '
-      + 'assessed at $700,000 pays roughly <strong>$105/year</strong>. Rate and duration are '
-      + 'placeholders — actual ballot language may differ.',
-  },
-  {
-    id: 'alameda_county',
-    label: 'Alameda County Measure',
-    shortLabel: 'County Measure',
-    tag: 'placeholder',
-    tier: 3,
-    tierLabel: null,
-    type: 'sales_tax',
-    rate: 0.0025,      // 0.25%
-    duration: null,
-    defaultEnabled: false,
-    description: 'A county-wide measure adding <strong>¼¢ on every dollar</strong> (<strong>0.25%</strong>) '
-      + 'to the sales tax on taxable purchases throughout Alameda County. On $2,000/month in spending, '
-      + 'this adds about <strong>$60/year</strong>. Rate and duration are placeholders.',
+    description: 'A new initiative backed by local arts institutions (Berkeley Repertory Theatre, '
+      + 'Freight &amp; Salvage, Berkeley Symphony) to fund the arts via a parcel tax of '
+      + '<strong>$0.07 per square foot</strong> of property improvements. A 1,500 sqft home pays '
+      + 'roughly <strong>$105/year</strong>. Rate and duration are placeholders — actual ballot '
+      + 'language may differ.',
   },
 ];
 
@@ -868,9 +854,9 @@ const SQFT_BANDS = makeBands(800, 4000, 100);                // 32 cols
 // SCENARIO PRESETS
 // ════════════════════════════════════════════════════════════════
 const PRESETS = {
-  'city-only':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:false, busd_parcel:false, busd_bond:false, alameda_county:false },
-  'city-transit':{ berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  busd_parcel:false, busd_bond:false, alameda_county:false },
-  'full-2026':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  busd_parcel:true,  busd_bond:true,  alameda_county:true  },
+  'city-only':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:false, public_bank:false, arts_parcel:false },
+  'city-transit':{ berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  public_bank:false, arts_parcel:false },
+  'full-2026':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  public_bank:true,  arts_parcel:true  },
 };
 
 // ════════════════════════════════════════════════════════════════
