@@ -889,7 +889,9 @@ function makeBands(min, max, step) {
   return bands;
 }
 
-const AV_BANDS   = makeBands(300_000, 2_500_000, 50_000);   // 44 rows
+// 50k steps below $1M, 100k above — coarser at the top so labels stay one decimal ($1.1M, $1.2M)
+const AV_BANDS   = makeBands(300_000, 1_000_000, 50_000)
+  .concat(makeBands(1_000_000, 2_500_000, 100_000));        // 29 rows
 const SQFT_BANDS = makeBands(800, 4000, 100);                // 32 cols
 
 // ════════════════════════════════════════════════════════════════
