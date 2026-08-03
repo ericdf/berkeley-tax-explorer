@@ -131,7 +131,7 @@ Each measure definition must include:
 
 ## 7. Measures to Include
 
-### 7.1 Tier 1 — Active Berkeley Proposals
+### 7.1 Tier 1 — Council-initiated
 
 **(must be included and enabled by default)**
 
@@ -141,43 +141,84 @@ Each measure definition must include:
 * Type: AV-based
 * Rate: ~$22 per $100k AV
 * Duration: 30 years (assume)
-* Label: “Berkeley Infrastructure Bond (draft)”
+* Label: “Berkeley Infrastructure Bond (ballot)”
 
 #### B. Berkeley Sales Tax
 
 * Type: sales tax
 * Rate: +0.5%
-* Label: “Berkeley Sales Tax (draft)”
+* Label: “Berkeley Sales Tax (ballot)”
 
 ---
 
-### 7.2 Tier 2 — Highly Probable Regional Measure
+### 7.2 Tier 2 — Citizen-initiated
 
-#### C. Regional Transit Tax (BART / AC Transit / MTC)
+**(enabled by default)**
 
-* Type: sales tax
-* Rate: +0.5%
-* Duration: ~14 years
-* Label: “Regional Transit Tax (probable)”
-
----
-
-### 7.3 Tier 3 — Plausible Additional Measures
-
-**(included but off by default)**
-
-#### D. Public Bank Parcel Tax (placeholder)
+#### C. Public Bank Parcel Tax
 
 * Type: sqft-based
 * Default: $0.06/sqft (dwelling units; other property types pay $0.09/sqft, not modeled)
 * Duration: 6 years
-* Label: “Public Bank Parcel Tax (placeholder)”
+* Label: “Public Bank Parcel Tax (ballot)”
 
-#### E. Arts Parcel Tax (placeholder)
+#### D. Arts and Creative Economy Parcel Tax
+
+The “2026 Berkeley Arts and Creative Economy Rescue and Sustainability Ballot Measure,”
+a citizens’ initiative (Ord. §7.30.040) enacting Chapter 7.30. Rates and duration below
+are taken from the ordinance text, not estimated.
 
 * Type: sqft-based
-* Default: $0.07/sqft of property improvements
-* Label: “Arts Parcel Tax (placeholder)”
+* Rate: $0.07/sqft of improvements — the **same rate** for dwelling units and all other
+  property including parking structures (§7.30.140(C))
+* Duration: 12 years, commencing January 1, 2027 (§7.30.140(D))
+* Proceeds: 75% performing arts rescue/sustainability, 10% capital projects, 5% arts
+  organizations and individual artists, 5% community festivals, 5% administration
+* Exemptions (**not** reflected in modeled figures; each requires annual petition):
+  low-income owner-occupiers 65+, very-low-income owner-occupiers, tax-exempt religious
+  organizations and schools, qualifying affordable and transitional housing
+* Label: “Arts and Creative Economy Parcel Tax (ballot)”
+
+---
+
+### 7.3 Tier 3 — Regional
+
+#### E. Regional Transit Tax (BART / AC Transit / MTC)
+
+Multi-county measure raising an estimated $14 billion for mass transit over 14 years.
+
+* Type: sales tax
+* Rate: **+0.5% in Alameda County** (also Contra Costa, San Mateo, Santa Clara);
+  San Francisco is +1%. Only the Alameda rate is modeled, since this tool models a
+  Berkeley household.
+* Duration: 14 years
+* Label: “Regional Transit Tax (ballot)”
+
+---
+
+### 7.4 Tier 4 — Informational (not modeled)
+
+**(listed for completeness; no checkbox, never included in any total)**
+
+Real measures whose household cost this model cannot compute. They are shown so the
+ballot picture is complete, but they have `type: 'informational'` and are rendered
+without a checkbox so they can never enter the matrix or the projections.
+
+#### F. Sugar-Sweetened Beverage Tax Increase
+
+* Type: informational — not modeled
+* Replaces the existing $0.01/fl oz general tax with a $0.02/fl oz special tax on
+  distribution of sugar-sweetened beverages
+* Exemptions retained: small retailers, milk products, baby formula, alcoholic
+  beverages, medical and weight-loss products
+* Estimated revenue: ~$2.2M annually; runs until repealed by the voters
+* Label: “Sugar-Sweetened Beverage Tax Increase (ballot)”
+
+**Why it is not modeled:** it taxes distributors, not property or general taxable
+spending. Household impact depends on retailer pass-through (which varies by product
+and store) and on household beverage consumption — none of which are model inputs.
+The description gives a per-unit anchor (+$0.01/oz ≈ $0.12 per 12-oz can if fully
+passed through) instead of a household annual figure.
 
 ---
 
@@ -372,8 +413,14 @@ Displays:
 Provide quick toggles:
 
 * “City Only”
-* “City + Transit”
-* “Full Plausible 2026 Ballot”
+* “All”
+
+Any preset that includes city measures includes **both** Tier 1 (Council-initiated) and
+Tier 2 (Citizen-initiated) — they are both city measures and are never split apart.
+
+A third preset, “Full Plausible Ballot,” is commented out in `index.html`. It modeled
+measures anticipated but not yet qualified; with every modeled measure now qualified it
+duplicated “All”. Revive it during the next run-up to qualification — see `CLAUDE.md`.
 
 ---
 
@@ -395,9 +442,10 @@ Provide quick toggles:
 * All assumptions visible
 * All rates labeled clearly:
 
-  * “draft”
-  * “probable”
-  * “placeholder”
+  * “ballot” — approved for / filed for the ballot; rates come from actual measure text
+
+All measures currently modeled are “ballot”. The tag mechanism is retained so a future
+measure at a lesser stage of certainty can be distinguished.
 
 ---
 

@@ -96,6 +96,8 @@
       flex: 1;
     }
     .measure-label input[type=checkbox] { cursor: pointer; accent-color: #1a3a5c; }
+    /* Informational rows have no checkbox — indent to align with checkbox labels */
+    .measure-label-info { cursor: default; padding-left: 18px; color: #555; }
 
     .info-link {
       background: none;
@@ -151,9 +153,7 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
-    .tag-draft        { background: #fef3c7; color: #92400e; }
-    .tag-probable     { background: #dbeafe; color: #1e3a8a; }
-    .tag-placeholder  { background: #f3f4f6; color: #6b7280; }
+    .tag-ballot       { background: #dcfce7; color: #166534; }
 
     .preset-row { display: flex; gap: 5px; flex-wrap: wrap; }
     .preset-btn {
@@ -309,6 +309,7 @@
     }
     .detail-title { font-size: 13px; font-weight: 600; color: #1a3a5c; }
     .detail-cost-now { font-size: 21px; font-weight: 700; color: #b91c1c; }
+    .detail-cost-delta { font-size: 12px; color: #b91c1c; }
     .detail-cost-future { font-size: 12px; color: #555; }
 
     .chart-wrap { height: 148px; position: relative; }
@@ -578,8 +579,9 @@
         <div class="ctrl-label">Scenario Presets</div>
         <div class="preset-row">
           <button class="preset-btn" data-preset="city-only">City Only</button>
-          <button class="preset-btn" data-preset="city-transit">City + Transit</button>
-          <button class="preset-btn" data-preset="full-2026">Full Plausible 2026 Ballot</button>
+          <button class="preset-btn" data-preset="all">All</button>
+          <!-- Retired; revive when measures are pending qualification. See CLAUDE.md. -->
+          <!-- <button class="preset-btn" data-preset="full-plausible">Full Plausible Ballot</button> -->
         </div>
       </div>
 
@@ -658,14 +660,14 @@
 // MEASURE DEFINITIONS  (all inline, no external JSON)
 // ════════════════════════════════════════════════════════════════
 const MEASURES = [
-  // ── Tier 1: Active Berkeley Proposals (on by default) ──
+  // ── Tier 1: Council-initiated (on by default) ──
   {
     id: 'berkeley_bond',
     label: 'Berkeley Infrastructure Bond',
     shortLabel: 'Infra. Bond',
-    tag: 'draft',
+    tag: 'ballot',
     tier: 1,
-    tierLabel: 'Tier 1 — Active Berkeley Proposals',
+    tierLabel: 'Tier 1 — Council-initiated',
     type: 'av_based',
     rate: 22,          // $ per $100k AV
     duration: 30,      // years until expiry (null = permanent)
@@ -679,7 +681,7 @@ const MEASURES = [
     id: 'berkeley_sales_tax',
     label: 'Berkeley Sales Tax',
     shortLabel: 'Berkeley Sales Tax',
-    tag: 'draft',
+    tag: 'ballot',
     tier: 1,
     tierLabel: null,
     type: 'sales_tax',
@@ -691,55 +693,95 @@ const MEASURES = [
       + 'are exempt. On $2,000/month in taxable spending, this adds about <strong>$120/year</strong>. '
       + 'No expiration.',
   },
-  // ── Tier 2: Highly Probable Regional (on by default) ──
-  {
-    id: 'regional_transit',
-    label: 'Regional Transit Tax (BART / AC Transit / MTC)',
-    shortLabel: 'Transit Tax',
-    tag: 'probable',
-    tier: 2,
-    tierLabel: 'Tier 2 — Highly Probable Regional',
-    type: 'sales_tax',
-    rate: 0.005,       // 0.5%
-    duration: 14,
-    defaultEnabled: true,
-    description: 'A county-wide measure to fund BART, AC Transit, and regional transit planning. '
-      + 'Adds <strong>½¢ on every dollar</strong> (<strong>0.5%</strong>) of taxable purchases '
-      + 'throughout Alameda County — the same rate as the Berkeley Sales Tax above, applied on top '
-      + 'of it. Expires after <strong>14 years</strong>.',
-  },
-  // ── Tier 3: Plausible Additional (off by default) ──
+  // ── Tier 2: Citizen-initiated (on by default) ──
   {
     id: 'public_bank',
     label: 'Public Bank Parcel Tax',
     shortLabel: 'Public Bank',
-    tag: 'placeholder',
-    tier: 3,
-    tierLabel: 'Tier 3 — Plausible Additional',
+    tag: 'ballot',
+    tier: 2,
+    tierLabel: 'Tier 2 — Citizen-initiated',
     type: 'sqft_based',
     rate: 0.06,        // $/sqft for dwelling units
     duration: 6,
-    defaultEnabled: false,
+    defaultEnabled: true,
     description: 'A temporary six-year parcel tax to fund a proposed public bank. Dwelling units pay '
       + '<strong>$0.06 per square foot</strong> (other property types pay $0.09/sqft, not modeled here). '
       + 'A 1,500 sqft home pays roughly <strong>$90/year</strong>. Expires after <strong>6 years</strong>.',
   },
   {
     id: 'arts_parcel',
-    label: 'Arts Parcel Tax',
+    label: 'Arts and Creative Economy Parcel Tax',
     shortLabel: 'Arts Tax',
-    tag: 'placeholder',
-    tier: 3,
+    tag: 'ballot',
+    tier: 2,
     tierLabel: null,
     type: 'sqft_based',
-    rate: 0.07,        // $/sqft of property improvements
+    rate: 0.07,        // $/sqft of improvements — Ord. §7.30.140(C)
+    duration: 12,      // 12 years from Jan 1 2027 — Ord. §7.30.140(D)
+    defaultEnabled: true,
+    description: 'The <strong>2026 Berkeley Arts and Creative Economy Rescue and Sustainability '
+      + 'Ballot Measure</strong>, a citizens\' initiative funding grants to nonprofit performing arts '
+      + 'organizations, arts organizations, individual artists, and community festivals through a new '
+      + '&ldquo;Arts Vitality Fund.&rdquo; Levies <strong>$0.07 per square foot of improvements</strong> '
+      + '&mdash; the same rate for dwelling units and all other property, including parking structures. '
+      + 'A 1,500 sqft home pays roughly <strong>$105/year</strong>. Runs <strong>12 years</strong> '
+      + 'starting January 1, 2027.<br><br>'
+      + 'Proceeds are allocated 75% to performing arts rescue and sustainability grants, 10% to capital '
+      + 'projects, 5% to arts organizations and individual artist projects, 5% to community festivals, '
+      + 'and 5% to administrative overhead.<br><br>'
+      + '<strong>Exemptions</strong> (not reflected in these figures) are available by annual petition '
+      + 'for owner-occupiers 65 or older with low household income, very-low-income owner-occupiers, '
+      + 'tax-exempt religious organizations and schools, and qualifying affordable and transitional '
+      + 'housing. If you qualify, your cost would be $0.',
+  },
+  // ── Tier 3: Regional (on by default) ──
+  {
+    id: 'regional_transit',
+    label: 'Regional Transit Tax (BART / AC Transit / MTC)',
+    shortLabel: 'Transit Tax',
+    tag: 'ballot',
+    tier: 3,
+    tierLabel: 'Tier 3 — Regional',
+    type: 'sales_tax',
+    rate: 0.005,       // 0.5% in Alameda County
+    duration: 14,
+    defaultEnabled: true,
+    description: 'A multi-county measure to fund BART, AC Transit, and regional transit, expected to '
+      + 'raise an estimated <strong>$14 billion over 14 years</strong>. Alameda County pays an '
+      + 'additional <strong>0.5%</strong> — <strong>½¢ on every dollar</strong> of taxable purchases '
+      + '— the same rate as the Berkeley Sales Tax above, applied on top of it. Contra Costa, San '
+      + 'Mateo, and Santa Clara counties pay the same 0.5%; San Francisco pays 1%. Expires after '
+      + '<strong>14 years</strong>.',
+  },
+  // ── Tier 4: Informational — real measures whose household cost this model cannot compute ──
+  {
+    id: 'ssb_tax',
+    label: 'Sugar-Sweetened Beverage Tax Increase',
+    shortLabel: 'SSB Tax',
+    tag: 'ballot',
+    tier: 4,
+    tierLabel: 'Tier 4 — Informational (not modeled)',
+    type: 'informational',
+    rate: null,
     duration: null,
     defaultEnabled: false,
-    description: 'A new initiative backed by local arts institutions (Berkeley Repertory Theatre, '
-      + 'Freight &amp; Salvage, Berkeley Symphony) to fund the arts via a parcel tax of '
-      + '<strong>$0.07 per square foot</strong> of property improvements. A 1,500 sqft home pays '
-      + 'roughly <strong>$105/year</strong>. Rate and duration are placeholders — actual ballot '
-      + 'language may differ.',
+    informational: true,
+    description: 'Approved for the ballot. Replaces Berkeley\'s existing <strong>$0.01 per fluid '
+      + 'ounce</strong> general tax on the distribution of sugar-sweetened beverages with a '
+      + '<strong>$0.02 per fluid ounce special tax</strong>, funding public health, nutrition, and '
+      + 'drinking water accessibility programs run by nonprofits, the City, or Berkeley Unified '
+      + 'School District. Current exemptions are retained for small retailers, milk products, baby '
+      + 'formula, alcoholic beverages, and medical and weight-loss products. Estimated to raise '
+      + 'roughly <strong>$2.2 million annually</strong>, until repealed by the voters.<br><br>'
+      + '<strong>Why this isn\'t in the totals:</strong> this is a tax on distributors, not a charge '
+      + 'on your property or a rate added at the register. What reaches you depends on how much of '
+      + 'it retailers pass through — which varies by product and store — and on how many ounces of '
+      + 'covered drinks your household actually buys. This model tracks assessed value, square '
+      + 'footage, and general taxable spending, none of which predict that. A household buying no '
+      + 'sugar-sweetened beverages pays nothing; a heavy buyer could pay noticeably more. The '
+      + '<strong>+$0.01/oz</strong> increase is about <strong>$0.12 on a 12-oz can</strong> if fully '
+      + 'passed through.',
   },
 ];
 
@@ -854,9 +896,12 @@ const SQFT_BANDS = makeBands(800, 4000, 100);                // 32 cols
 // SCENARIO PRESETS
 // ════════════════════════════════════════════════════════════════
 const PRESETS = {
-  'city-only':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:false, public_bank:false, arts_parcel:false },
-  'city-transit':{ berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  public_bank:false, arts_parcel:false },
-  'full-2026':   { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  public_bank:true,  arts_parcel:true  },
+  'city-only': { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:false, public_bank:true, arts_parcel:true },
+  'all':       { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  public_bank:true, arts_parcel:true },
+
+  // Retired: every modeled measure has qualified, making this identical to 'all'.
+  // Revive when a not-yet-qualified measure is added — see CLAUDE.md for the rationale.
+  // 'full-plausible': { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true, public_bank:true, arts_parcel:true },
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -912,8 +957,9 @@ function totalAnnualCost(av, sqft, spending) {
   return proposedTotal(av, sqft, spending) + incumbentTotal(av, sqft, spending);
 }
 
-// Returns array [year0, year1, ..., yearN] of annual costs
-function projectCosts(av, sqft, spending) {
+// Returns array [year0, year1, ..., yearN] of annual costs.
+// includeProposed=false yields the incumbent-only counterfactual (the baseline line).
+function projectCosts(av, sqft, spending, includeProposed = true) {
   const { avGrowth, inflation, projYears } = state;
   const out = [];
   let curAV  = av;
@@ -921,10 +967,12 @@ function projectCosts(av, sqft, spending) {
   for (let yr = 0; yr <= projYears; yr++) {
     let cost = 0;
     // Proposed measures
-    for (const m of MEASURES) {
-      if (!state.enabled[m.id]) continue;
-      if (m.duration !== null && yr >= m.duration) continue;
-      cost += rawCost(m, curAV, sqft, curSpd);
+    if (includeProposed) {
+      for (const m of MEASURES) {
+        if (!state.enabled[m.id]) continue;
+        if (m.duration !== null && yr >= m.duration) continue;
+        cost += rawCost(m, curAV, sqft, curSpd);
+      }
     }
     // Incumbent taxes (when baseline toggle is on)
     if (state.includeBaseline) {
@@ -980,7 +1028,7 @@ function labelColor(t) {
 // ════════════════════════════════════════════════════════════════
 // TAG HTML HELPER
 // ════════════════════════════════════════════════════════════════
-const TAG_CLASS = { draft:'tag-draft', probable:'tag-probable', placeholder:'tag-placeholder' };
+const TAG_CLASS = { ballot:'tag-ballot' };
 function tagHTML(m) {
   return `<span class="tag ${TAG_CLASS[m.tag] || ''}">${m.tag}</span>`;
 }
@@ -1080,20 +1128,28 @@ function initCheckboxes() {
     const row = document.createElement('div');
     row.className = 'measure-row';
 
-    const label = document.createElement('label');
-    label.className = 'measure-label';
+    // Informational measures have no computable household cost — no checkbox, never in totals
+    if (m.informational) {
+      const label = document.createElement('span');
+      label.className = 'measure-label measure-label-info';
+      label.innerHTML = `${m.label} ${tagHTML(m)}`;
+      row.appendChild(label);
+    } else {
+      const label = document.createElement('label');
+      label.className = 'measure-label';
 
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.id = 'cb-' + m.id;
-    cb.checked = state.enabled[m.id];
-    cb.addEventListener('change', () => {
-      state.enabled[m.id] = cb.checked;
-      update();
-    });
-    label.appendChild(cb);
-    label.insertAdjacentHTML('beforeend', ` ${m.label} ${tagHTML(m)}`);
-    row.appendChild(label);
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = 'cb-' + m.id;
+      cb.checked = state.enabled[m.id];
+      cb.addEventListener('change', () => {
+        state.enabled[m.id] = cb.checked;
+        update();
+      });
+      label.appendChild(cb);
+      label.insertAdjacentHTML('beforeend', ` ${m.label} ${tagHTML(m)}`);
+      row.appendChild(label);
+    }
 
     if (m.description) {
       const link = document.createElement('button');
@@ -1291,13 +1347,18 @@ function renderDetail() {
   const spending = state.monthlySpending;
   const current  = totalAnnualCost(avBand.mid, sqftBand.mid, spending);
   const proj     = projectCosts(avBand.mid, sqftBand.mid, spending);
+  // True "today" baseline: incumbent taxes only, before any proposed measure passes
+  const todayCost = incumbentTotal(avBand.mid, sqftBand.mid, spending);
+  const delta     = current - todayCost;
+  // Counterfactual path: incumbents only, tracking AV growth and bond step-downs
+  const baseProj  = projectCosts(avBand.mid, sqftBand.mid, spending, false);
   const peakCost = Math.max(...proj);
   const peakYear = proj.indexOf(peakCost);
   const finalCost = proj[proj.length - 1];
   const peakAtEnd = peakYear === proj.length - 1;
   const futureLabel = peakAtEnd
-    ? `today &rarr; <strong>${fmt$(finalCost)}/yr</strong> in yr ${state.projYears}`
-    : `today &rarr; peak <strong>${fmt$(peakCost)}/yr</strong> in yr ${peakYear}, then ${fmt$(finalCost)}/yr by yr ${state.projYears}`;
+    ? `&rarr; <strong>${fmt$(finalCost)}/yr</strong> in yr ${state.projYears}`
+    : `&rarr; peak <strong>${fmt$(peakCost)}/yr</strong> in yr ${peakYear}, then ${fmt$(finalCost)}/yr by yr ${state.projYears}`;
 
   panel.innerHTML = `
     <div class="detail-header">
@@ -1306,6 +1367,7 @@ function renderDetail() {
         ${sqftBand.lo.toLocaleString()}–${sqftBand.hi.toLocaleString()} sqft
       </span>
       <span class="detail-cost-now">${fmt$(current)}/yr</span>
+      ${state.includeBaseline ? `<span class="detail-cost-delta">if selected pass (+${fmt$(delta)}/yr)</span>` : ''}
       <span class="detail-cost-future">${futureLabel}</span>
     </div>
     <div class="chart-wrap"><canvas id="proj-canvas"></canvas></div>
@@ -1313,7 +1375,7 @@ function renderDetail() {
 
   if (chart) { chart.destroy(); chart = null; }
 
-  const labels = proj.map((_, i) => i === 0 ? 'Now' : `Yr ${i}`);
+  const labels = proj.map((_, i) => i === 0 ? 'Yr 0' : `Yr ${i}`);
   const ctx    = document.getElementById('proj-canvas').getContext('2d');
 
   // Build expiry-line annotations for measures that end within the projection window
@@ -1323,7 +1385,7 @@ function renderDetail() {
   for (const m of MEASURES) {
     if (!state.enabled[m.id] || m.duration === null) continue;
     if (m.duration > state.projYears) continue;
-    const xLabel = m.duration === 0 ? 'Now' : `Yr ${m.duration}`;
+    const xLabel = `Yr ${m.duration}`;
     annotations[`expire_${m.id}`] = {
       type: 'line', xMin: xLabel, xMax: xLabel,
       borderColor: 'rgba(185,28,28,0.55)', borderWidth: 1.5, borderDash: [5, 4],
@@ -1361,7 +1423,7 @@ function renderDetail() {
     data: {
       labels,
       datasets: [{
-        label: 'Annual Cost',
+        label: 'With selected measures',
         data: proj,
         borderColor: '#1a3a5c',
         backgroundColor: 'rgba(26,58,92,0.09)',
@@ -1370,7 +1432,18 @@ function renderDetail() {
         pointRadius: 2,
         pointHoverRadius: 6,
         borderWidth: 2,
-      }],
+      }, ...(state.includeBaseline ? [{
+        // Flat reference line at what the household pays today, before any measure passes
+        label: 'Without these new measures',
+        data: baseProj,
+        borderColor: 'rgba(100,100,120,0.75)',
+        borderDash: [5, 4],
+        fill: false,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 1.5,
+      }] : [])],
     },
     options: {
       responsive: true,
@@ -1379,9 +1452,13 @@ function renderDetail() {
       // Tooltip fires anywhere in the vertical column — no need to hit a point precisely
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { boxWidth: 18, boxHeight: 2, font: { size: 10 }, padding: 8 },
+        },
         tooltip: {
-          callbacks: { label: ctx => fmt$(ctx.raw) + ' / yr' },
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt$(ctx.raw)} / yr` },
         },
         annotation: { annotations },
       },
