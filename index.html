@@ -1878,7 +1878,7 @@ function renderSidebar() {
 
   // Assumptions — always shown
   sbAssumptions.innerHTML = `
-    <div class="assump-row"><span>Monthly Taxable Spending</span><span>${fmt$(state.monthlySpending)}/mo</span></div>
+    <div class="assump-row"><span>Monthly Taxable Spending</span><span>${fmt$(spdAtYear(state.monthlySpending, state.viewYear))}/mo</span></div>
     <div class="assump-row"><span>AV Growth Rate</span><span>${fmtPct(state.avGrowth)}/yr</span></div>
     <div class="assump-row"><span>Spending Inflation</span><span>${fmtPct(state.inflation)}/yr</span></div>
     <div class="assump-row"><span>Bond Interest Rate</span><span>${fmtPct(state.bondRate)}</span></div>
@@ -2000,10 +2000,6 @@ function renderSidebar() {
   let summaryHTML;
   if (state.includeBaseline) {
     summaryHTML = `
-      <div class="split-row">
-        <span class="split-label">Current taxes</span>
-        <span class="split-amount incumbent">${fmt$(incCost)}/yr</span>
-      </div>
       ${rampMeasures.length ? `
       <div class="split-row">
         <span class="split-label">+ Infrastructure bond</span>
