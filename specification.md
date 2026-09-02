@@ -1067,3 +1067,86 @@ Three changes, because a ramping cost inside a falling total is invisible:
   stacked areas. The total falls as existing bonds mature; only stacking shows the new
   burden climbing underneath that decline. This is the same presentation the City's own
   chart uses, for the same reason.
+
+---
+
+# Addendum: Escalators, Renewal, and the Year Stepper (September 2026)
+
+## 56. Every levy's trajectory is now determined
+
+Section 48 rebuilt the incumbent levies from published rates but modeled twelve of them
+as level, on the absence of a published rate increase rather than on evidence. That was
+the same error as the invented $845 fire charge, in the other direction. Each has now
+been checked against its own measure or district.
+
+**Escalating** — rate rises every year:
+
+| Levy | Rate | Source |
+| --- | --- | --- |
+| City: parks, library, library relief, emergency svcs, fire GG, fire FF, SAFE STREETS | 4.95% | City published rate increase |
+| City: paramedic supplemental | 3.80% | City published rate increase |
+| City: street lighting | 3.00% | rises; no published rate |
+| City: 2018 Clean Stormwater Fee | 3.00% cap | CPI or 3%, whichever is lower |
+| BUSD: Berkeley School Tax (Measure H 2024) | 3.00% | $0.5400 (FY25-26) to $0.55620 (FY26-27) |
+| BUSD: School Maintenance (Measure H 2020) | 3.16% | $0.0910 to $0.10969 over six adjustments |
+| BUSD: Educator Recruitment (Measure E 2020) | 3.16% | $0.1240 to $0.14944 over six adjustments |
+| EBMUD Wet Weather | 4.00% | EBMUD published increase |
+| Mosquito/vector (2008 assessment) | 3.00% cap | ACMAD Engineer's Report, Resolution 937-1 |
+| Household hazardous waste | 3.00% | rises; no published rate |
+| **Measure Z (public bank)** | **2.18%** | see below |
+
+**Verified fixed** — no cost-of-living adjustment:
+
+Peralta (Measure E 2018, $48/parcel for eight years), AC Transit (Measure VV, $96),
+CSA Paramedic ($41), Regional Parks/EBRPD ($17), Bay Restoration/SFBRA AA ($12).
+Measure Y (arts) is also fixed: the ordinance sets $0.07/sqft flat at §7.30.140(C) with
+no adjustment clause, confirmed by reading the full initiative text.
+
+The three BUSD rates are derived arithmetic, not assumptions: each measure's ballot text
+confirms an annual cost-of-living adjustment, and the rate falls out of the starting rate
+in the measure and the rate Berkeley publishes for tax year 2026-27. The two 2020
+measures landing independently on 3.16% is the corroboration.
+
+**Measure Z carries an escalator that was missed on the first pass.** The City Attorney's
+impartial analysis states "The City Council would annually increase the tax rate based on
+inflation." Neither the index nor a cap is given, so the rate is derived from the City's
+own revenue estimates: $9.2M in the first year against $58.3M over six years reconciles
+only at 2.18% annual growth.
+
+Two amounts were also corrected against the county bill: household hazardous waste from
+$18 to $8 (bill line $7.80) and mosquito/vector from $17 to $11 (three lines totaling
+$11.20). Both had been rounded up when first transcribed.
+
+## 57. Renewal is the default
+
+Parcel taxes continue past their stated sunset dates unless the reader unchecks "Assume
+taxes renew". Berkeley's record supports the default: Measure P (2018) carried a hard
+sunset of January 1, 2029, and in November 2024 — four years early — Measure W removed
+the expiration date entirely and raised the rates.
+
+`effectiveDuration()` returns `statedDuration` only when the box is unchecked. Bond debt
+service is exempt from the toggle: it repays a fixed principal and ends either way.
+
+## 58. The year stepper
+
+The tool's subject is the bill over time, so `state.viewYear` is first-class: the summary,
+every per-measure row, and all 27 incumbent line items re-render at the selected year with
+assessed value grown, spending inflated, escalators compounded and bond tranches phased in.
+`costAtYear()` is the single entry point; stepper totals are verified to reconcile with
+`projectCosts()` at every year.
+
+Line items carry their trajectory — an up marker for anything that grows (rate escalator
+or assessed-value based), a down marker for the maturing bond cohorts, nothing for a levy
+that is fixed by its own terms. Once the reader steps off the current year each marked row
+shows its growth to that point.
+
+**All amounts are nominal** — the dollars of the year shown, not inflation-adjusted. This
+is labeled in the bar and in the assumptions, along with which levies outpace inflation
+and which do not.
+
+## 59. Layout
+
+The grid is a chooser: once a cell is picked it is replaced by the line-item breakdown in
+three columns, under a sticky bar carrying the selection, a Change button, the year
+stepper and the change against today. Fixed widths on the year label, the amount and the
+delta keep the step buttons from moving under the cursor between clicks.

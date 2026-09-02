@@ -62,6 +62,10 @@
     }
 
     .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+    /* Keep groups to their content so none of them stretches across the panel. */
+    .ctrl-group { flex: 0 0 auto; }
+    #measures-container { max-width: 560px; }
+    #sb-assumptions { min-width: 230px; max-width: 280px; }
     .ctrl-label {
       font-size: 10px;
       font-weight: 700;
@@ -158,6 +162,7 @@
     .tag-ballot       { background: #dcfce7; color: #166534; }
 
     .preset-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .preset-intro { font-size: 10px; color: #999; font-weight: 400; margin-right: 2px; }
     .preset-btn {
       padding: 4px 9px;
       font-size: 11px;
@@ -197,7 +202,7 @@
        its first column is sticky, so horizontal scrolling has to stay. Vertical
        clipping is what made it a letterbox, and that is gone. */
     .matrix-wrap {
-      flex: 1;
+      flex: 0 1 auto;
       /* CSS computes the other axis to auto whenever one is set, so this box can
          still technically scroll vertically. It never does: nothing constrains
          its height any more, so scrollHeight and clientHeight are equal. */
@@ -320,21 +325,82 @@
     .detail-cost-future { font-size: 12px; color: #555; }
 
     .chart-wrap { height: 148px; position: relative; }
+    .chart-cap { font-size: 10px; color: #777; margin: 2px 0 4px; }
 
     /* ── Sidebar ── */
-    .sidebar {
-      width: 270px;
-      flex-shrink: 0;
-      background: #fafaf8;
-      border-left: 1px solid #d8d4cc;
-      display: flex;
-      flex-direction: column;
-    }
 
     .sb-section {
       padding: 11px 13px;
       border-bottom: 1px solid #e8e4de;
     }
+
+    /* Year stepper */
+    .yr-btn {
+      flex: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer;
+      border: 1px solid #c9d3df; background: #f2f6fa; color: #1a3a5c;
+      font-size: 17px; line-height: 1; font-weight: 700;
+    }
+    .yr-btn:hover:not(:disabled) { background: #e4ecf5; }
+    .yr-btn:disabled { opacity: .35; cursor: default; }
+    .yr-readout { flex: 1; text-align: center; }
+    .yr-label { display: block; font-size: 10px; color: #777; text-transform: uppercase;
+                letter-spacing: .04em; }
+    .yr-cost  { display: block; font-size: 19px; font-weight: 700; color: #b91c1c;
+                font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .yr-delta { font-size: 10px; color: #777; text-align: center; margin-top: 3px; min-height: 13px; }
+
+    /* ── Selection bar + wide breakdown (replaces the grid once a cell is chosen) ── */
+    .sel-bar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      position: sticky; top: 0; z-index: 20;
+      padding: 7px 14px; background: #eef2f7; border-bottom: 1px solid #d3dce7;
+      font-size: 12px; color: #1a3a5c;
+    }
+    .sel-bar-text { min-width: 0; flex: none; font-size: 13px; }
+    .sel-bar-text strong { font-size: 12px; }
+    .sel-bar-step { display: flex; align-items: center; gap: 8px; flex: none; margin-left: 12px; }
+    .sel-bar-step .yr-btn { width: 25px; height: 25px; font-size: 15px; flex: none; }
+    /* Fixed, not min-width: the amount grows a digit over the projection and would
+       otherwise push the forward arrow away mid-click. */
+    .sel-bar-cost { font-size: 15px; color: #b91c1c; white-space: nowrap;
+                    font-variant-numeric: tabular-nums; width: 104px; text-align: center; }
+    /* Reserve a fixed width: the label text changes length as the year advances
+       ("This year (2026)" vs "Year 8 (2034)"), and without this the step buttons
+       shift under the cursor between clicks. */
+    .sel-bar-yr {
+      white-space: nowrap; font-size: 13px; color: #1a3a5c; flex: none;
+      display: inline-block; width: 122px; text-align: right;
+    }
+    .sel-bar-end { white-space: nowrap; font-size: 12px; color: #1a3a5c; font-weight: 600;
+                   flex: none; min-width: 210px; }
+    .nominal-note { display: block; font-size: 9px; font-weight: 400; color: #7186a0;
+                    text-transform: uppercase; letter-spacing: .04em; }
+    .sel-bar-btn {
+      flex: none; cursor: pointer; font: inherit; font-weight: 600;
+      color: #1a3a5c; background: #fff; border: 1px solid #a9bdd4;
+      border-radius: 4px; padding: 4px 12px;
+    }
+    .sel-bar-btn:hover { background: #dce6f2; }
+
+    .breakdown-wide {
+      flex: 1 1 auto; overflow-y: auto; background: #fff; padding: 12px 16px;
+      /* Three columns on a desktop width, collapsing to fewer as space allows. */
+      column-count: 3; column-gap: 26px; column-rule: 1px solid #eeebe6;
+    }
+    @media (max-width: 1100px) { .breakdown-wide { column-count: 2; } }
+    @media (max-width: 768px)  { .breakdown-wide { column-count: 1; } }
+
+    /* Results header — stepper and summary side by side above the breakdown. */
+    .results-head {
+      display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap;
+      padding: 12px 16px 0; background: #fff;
+    }
+    .results-summary { flex: 1 1 320px; min-width: 0; }
+    /* Keep a group header attached to its rows across a column break. */
+    .breakdown-wide .breakdown-group-hdr { break-after: avoid; break-inside: avoid; }
+    .breakdown-wide .rollup-cat,
+    .breakdown-wide .breakdown-table { break-inside: avoid; }
+
     .sb-title {
       font-size: 10px;
       font-weight: 700;
@@ -356,6 +422,33 @@
     }
     .ramp-warn strong { color: #9a3412; }
     .split-sub { font-size: 10px; color: #999; font-weight: 400; }
+    /* New measures carry a red tint — these are the charges being voted on,
+       set against the amber of the "this bill grows" note. */
+    /* Levies that rise every year. The marker is the signal; the percentage
+       appears once the reader steps off the current year. */
+    .rise-mark { color: #c2410c; font-size: 7px; margin-right: 4px; vertical-align: 1px; }
+    .rollup-subitem.rises .rollup-sub-amount { color: #9a3412; }
+    .breakdown-table tr.rises td { color: #9a3412; }
+    .rise-delta { color: #c2410c; font-size: 9px; margin-left: 5px; font-weight: 600; }
+    .rise-delta.falls { color: #15803d; }
+    .rise-mark.down { color: #15803d; }
+
+    .proposed-box {
+      background: #fdf2f2; border: 1px solid #f0c4c4; border-left: 3px solid #b91c1c;
+      border-radius: 3px; padding: 8px 10px; margin-bottom: 12px;
+      break-inside: avoid;
+    }
+    .proposed-box .breakdown-group-hdr { color: #9a1c1c; }
+
+    .why-line { margin: 0 0 4px; }
+    .why-line:last-child { margin-bottom: 0; }
+    .why-btn {
+      background: none; border: none; padding: 0 1px; cursor: pointer;
+      color: #9a3412; font-size: 11px; font-weight: 600;
+      text-decoration: underline dotted; white-space: nowrap;
+    }
+    .why-btn:hover { color: #7c2d12; }
+
     .sb-measure-count { font-size: 11px; color: #888; margin-top: 5px; }
 
     .sb-empty { font-size: 11px; color: #bbb; font-style: italic; }
@@ -497,12 +590,16 @@
     .rollup-tooltip-panel {
       position: fixed; z-index: 9999;
       background: #1a1a2e; color: #e8e4de; border-radius: 8px;
-      padding: 10px 12px; max-width: 280px; font-size: 11px; line-height: 1.55;
+      padding: 10px 12px; font-size: 11px; line-height: 1.55;
       box-shadow: 0 8px 24px rgba(0,0,0,0.35);
       pointer-events: none;
+      /* An explicit width is required: position:fixed with only a max-width
+         shrink-wraps to whatever room is left beside the anchor, which collapsed
+         these to a single column of words near the right edge. */
+      width: 280px;
+      max-width: calc(100vw - 24px);
+      box-sizing: border-box;
     }
-    .rollup-tooltip-panel.left  { transform: translateX(-100%) translateX(-8px); }
-    .rollup-tooltip-panel.right { transform: translateX(8px); }
 
     /* ── Disclosure note ── */
     .sb-disclosure {
@@ -537,15 +634,22 @@
 
       .chart-wrap { height: 190px; }
 
-      .sidebar {
-        width: 100%;
-        border-left: none;
-        border-top: 2px solid #d8d4cc;
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
+
+        /* Sidebar content matters more than the chart on a phone: show the numbers
+         first and let the chart follow. The grid and chart live inside
+         .left-panel > .main-content while the sidebar is a sibling of
+         .left-panel, so both wrappers become `display: contents` to flatten
+         their children into .layout's flex flow and let `order` interleave them. */
+      .left-panel   { display: contents; }
+      .main-content { display: contents; }
+      .control-panel { order: 1; }
+      .matrix-wrap  { order: 2; }
+      .results-head { order: 3; }
+      .breakdown-wide { order: 4; }
+      .detail-panel { order: 5; }
 
       .sb-section { flex: 1 1 220px; }
+
 
       .control-panel { gap: 12px; }
 
@@ -571,8 +675,20 @@
       <!-- Measures -->
       <div class="ctrl-group">
         <div class="ctrl-label">Measures</div>
+        <div class="preset-row" style="margin-bottom:6px">
+          <span class="preset-intro">Presets:</span>
+          <button class="preset-btn" data-preset="none">None</button>
+          <button class="preset-btn" data-preset="city-only">City Only</button>
+          <button class="preset-btn" data-preset="all">All</button>
+        </div>
         <div id="measures-container"></div>
+        <label class="baseline-toggle" style="margin-top:8px">
+          <input type="checkbox" id="cb-renew" checked />
+          <span>Assume taxes renew</span>
+        </label>
+        <button class="rollup-tt-btn" data-rollup-tooltip="why-renew">what's this?</button>
       </div>
+
 
       <!-- Baseline toggle -->
       <div class="ctrl-group">
@@ -582,18 +698,11 @@
           Include current taxes &amp; bonds
         </label>
         <div class="baseline-desc">Base prop. tax · existing bonds · parcel taxes &amp; assessments</div>
+
+        <div class="ctrl-label" style="margin-top:10px">Assumptions</div>
+        <div id="sb-assumptions"></div>
       </div>
 
-      <!-- Presets -->
-      <div class="ctrl-group">
-        <div class="ctrl-label">Scenario Presets</div>
-        <div class="preset-row">
-          <button class="preset-btn" data-preset="city-only">City Only</button>
-          <button class="preset-btn" data-preset="all">All</button>
-          <!-- Retired; revive when measures are pending qualification. See CLAUDE.md. -->
-          <!-- <button class="preset-btn" data-preset="full-plausible">Full Plausible Ballot</button> -->
-        </div>
-      </div>
 
       <!-- Household inputs -->
       <div class="ctrl-group">
@@ -604,6 +713,7 @@
             <input type="number" id="inp-spending" value="2000" min="0" step="100" />
           </div>
         </div>
+        <div id="ramp-slot"></div>
       </div>
 
       <!-- Projection settings -->
@@ -633,7 +743,29 @@
 
     <!-- Matrix + Detail -->
     <div class="main-content">
+      <!-- Selection bar: states the chosen cell and swaps the grid back in.
+           Hidden until a cell is picked. -->
+      <div class="sel-bar" id="sel-bar" hidden>
+        <span class="sel-bar-text" id="sel-bar-text"></span>
+        <button class="sel-bar-btn" id="sel-bar-change">Change</button>
+        <div class="sel-bar-step">
+          <span class="sel-bar-yr" id="yr-label">This year</span>
+          <button class="yr-btn" id="yr-back" aria-label="Previous year">&#8249;</button>
+          <strong class="sel-bar-cost" id="yr-cost">&mdash;</strong>
+          <button class="yr-btn" id="yr-fwd" aria-label="Next year">&#8250;</button>
+        </div>
+        <span class="sel-bar-end" id="yr-delta"></span>
+      </div>
       <div class="matrix-wrap" id="matrix-wrap"></div>
+
+      <!-- Results: the year control and the summary sit with the numbers they
+           govern, not off in a sidebar. -->
+      <!-- Line-item detail sits directly under the selection bar. -->
+      <div class="breakdown-wide" id="breakdown-wide" hidden></div>
+
+      <div class="results-head" id="results-head" hidden>
+        <div class="results-summary" id="sb-summary"></div>
+      </div>
       <div class="detail-panel" id="detail-panel">
         <div class="detail-empty">Click any cell in the matrix above to see your projected costs over time</div>
       </div>
@@ -642,30 +774,7 @@
   </div><!-- /left-panel -->
 
   <!-- ════════════════════ SIDEBAR ════════════════════ -->
-  <div class="sidebar">
 
-    <div class="sb-section">
-      <div class="sb-title">Scenario Summary</div>
-      <div id="sb-summary"><div class="sb-empty">Select a cell in the matrix to see your cost summary</div></div>
-    </div>
-
-    <div class="sb-section">
-      <div class="sb-title">Measure Breakdown</div>
-      <div id="sb-breakdown"><div class="sb-empty">Select a cell to see per-measure costs</div></div>
-    </div>
-
-    <div class="sb-section">
-      <div class="sb-title">Assumptions</div>
-      <div id="sb-assumptions"></div>
-    </div>
-
-    <div class="sb-section">
-      <div class="sb-title">Reset</div>
-      <button class="reset-btn" id="btn-clear">Clear Selected Cell</button>
-      <button class="reset-btn" id="btn-reset">Reset All Inputs to Defaults</button>
-    </div>
-
-  </div><!-- /sidebar -->
 
 </div><!-- /layout -->
 
@@ -673,6 +782,16 @@
 // ════════════════════════════════════════════════════════════════
 // MEASURE DEFINITIONS  (all inline, no external JSON)
 // ════════════════════════════════════════════════════════════════
+// RENEWAL ASSUMPTION
+// Parcel taxes are modeled as CONTINUING past their stated sunset dates, because
+// that is what Berkeley's record shows. Measure P (2018) carried a hard sunset of
+// January 1, 2029; in November 2024 — four years early — Measure W removed the
+// expiration date entirely and raised the rates. The City's own report: "the
+// expiration date was removed."
+//
+// Each measure keeps its `statedDuration` so the interface can name the sunset the
+// ballot promises. Bond debt service is different and still expires: it is repayment
+// of a fixed principal, not a tax that can be renewed by re-authorization.
 const MEASURES = [
   // ── Tier 1: Council-initiated (on by default) ──
   {
@@ -737,15 +856,18 @@ const MEASURES = [
     tierLabel: 'Tier 2 — Citizen-initiated',
     type: 'sqft_based',
     rate: 0.07,        // $/sqft of improvements — Ord. §7.30.140(C)
-    duration: 12,      // 12 years from Jan 1 2027 — Ord. §7.30.140(D)
+    duration: null,    // stated sunset is 12 years (Ord. §7.30.140(D)); modeled as
+                       // renewing — see RENEWAL ASSUMPTION below
+    statedDuration: 12,
     defaultEnabled: true,
     description: 'The <strong>2026 Berkeley Arts and Creative Economy Rescue and Sustainability '
       + 'Ballot Measure</strong>, a citizens\' initiative funding grants to nonprofit performing arts '
       + 'organizations, arts organizations, individual artists, and community festivals through a new '
       + '&ldquo;Arts Vitality Fund.&rdquo; Levies <strong>$0.07 per square foot of improvements</strong> '
       + '&mdash; the same rate for dwelling units and all other property, including parking structures. '
-      + 'A 1,500 sqft home pays roughly <strong>$105/year</strong>. Runs <strong>12 years</strong> '
-      + 'starting January 1, 2027.<br><br>'
+      + 'A 1,500 sqft home pays roughly <strong>$105/year</strong>. Written to run <strong>12 years</strong> '
+      + 'from January 1, 2027 &mdash; though this calculator assumes it is renewed rather than '
+      + 'allowed to lapse.<br><br>'
       + 'Proceeds are allocated 75% to performing arts rescue and sustainability grants, 10% to capital '
       + 'projects, 5% to arts organizations and individual artist projects, 5% to community festivals, '
       + 'and 5% to administrative overhead.<br><br>'
@@ -763,11 +885,18 @@ const MEASURES = [
     tierLabel: null,
     type: 'sqft_based',
     rate: 0.06,        // $/sqft for dwelling units
-    duration: 6,
+    // "The City Council would annually increase the tax rate based on inflation"
+    // (City Attorney's impartial analysis). Rate implied by the City's own revenue
+    // estimates: $9.2M in year one against $58.3M over six years reconciles at 2.18%.
+    escalator: 0.0218,
+    duration: null,    // stated sunset is 6 years; modeled as renewing
+    statedDuration: 6,
     defaultEnabled: true,
     description: 'A temporary six-year parcel tax to fund a proposed public bank, <strong>paid for by Berkeley exclusively</strong> to benefit the entire region. Dwelling units pay '
       + '<strong>$0.06 per square foot</strong> (other property types pay $0.09/sqft, not modeled here). '
-      + 'A 1,500 sqft home pays roughly <strong>$90/year</strong>. Expires after <strong>6 years</strong>.',
+      + 'A 1,500 sqft home pays roughly <strong>$90/year</strong> to start &mdash; the Council '
+      + 'raises the rate for inflation every year. Written to expire after '
+      + '<strong>6 years</strong>, though this calculator assumes it is renewed.',
   },
   // ── Tier 3: Regional (on by default) ──
   {
@@ -779,14 +908,15 @@ const MEASURES = [
     tierLabel: 'Tier 3 — Regional',
     type: 'sales_tax',
     rate: 0.005,       // 0.5% in Alameda County
-    duration: 14,
+    duration: null,    // stated sunset is 14 years; modeled as renewing
+    statedDuration: 14,
     defaultEnabled: true,
     description: 'A multi-county measure to fund BART, AC Transit, and regional transit, expected to '
       + 'raise an estimated <strong>$14 billion over 14 years</strong>. Alameda County pays an '
       + 'additional <strong>0.5%</strong> — <strong>½¢ on every dollar</strong> of taxable purchases '
       + '— the same rate as the Berkeley Sales Tax above, applied on top of it. Contra Costa, San '
-      + 'Mateo, and Santa Clara counties pay the same 0.5%; San Francisco pays 1%. Expires after '
-      + '<strong>14 years</strong>.',
+      + 'Mateo, and Santa Clara counties pay the same 0.5%; San Francisco pays 1%. Written to expire '
+      + 'after <strong>14 years</strong> &mdash; though this calculator assumes it is renewed.',
   },
   // ── Tier 4: Informational — real measures whose household cost this model cannot compute ──
   {
@@ -841,7 +971,7 @@ const INCUMBENT_COMPUTE = [
   // ── City of Berkeley parcel taxes — published FY2026-27 residential
   //    rates, $/sqft of improvements. Each carries the levy's own published
   //    annual rate increase. Source: berkeleyca.gov property-taxes page.
-  { id: 'city_streetlight', shortLabel: 'Street Lighting', type: 'sqft_based', rate: 0.01080, duration: null, escalator: 0      },
+  { id: 'city_streetlight', shortLabel: 'Street Lighting', type: 'sqft_based', rate: 0.01080, duration: null, escalator: 0.03   },
   { id: 'city_parks',       shortLabel: 'Parks (City)',    type: 'sqft_based', rate: 0.27830, duration: null, escalator: 0.0495 },
   { id: 'city_library',     shortLabel: 'Library (City)',  type: 'sqft_based', rate: 0.31280, duration: null, escalator: 0.0495 },
   { id: 'city_lib_relief',  shortLabel: 'Library Relief',  type: 'sqft_based', rate: 0.06297, duration: null, escalator: 0.0495 },
@@ -852,22 +982,35 @@ const INCUMBENT_COMPUTE = [
   { id: 'city_streets',     shortLabel: 'Safe Streets',    type: 'sqft_based', rate: 0.17482, duration: null, escalator: 0.0495 },
 
   // ── City — flat charges (per-parcel, from the Alameda County secured bill) ──
-  { id: 'city_stormwater',  shortLabel: 'Storm Water',     type: 'flat',       rate: 91,     duration: null },
+  // 2018 Clean Stormwater Fee adjusts annually by CPI or 3%, whichever is lower.
+  { id: 'city_stormwater',  shortLabel: 'Storm Water',     type: 'flat',       rate: 91,     duration: null, escalator: 0.03 },
 
   // ── BUSD parcel taxes — published FY2026-27 rates, $/sqft ──────
-  { id: 'sch_bsep',         shortLabel: 'School Tax (H)',  type: 'sqft_based', rate: 0.55620, duration: null },
-  { id: 'sch_maint',        shortLabel: 'Sch. Maintenance',type: 'sqft_based', rate: 0.10969, duration: null },
-  { id: 'sch_educator',     shortLabel: 'Educator Recruit',type: 'sqft_based', rate: 0.14944, duration: null },
+  // BUSD levies all carry annual cost-of-living adjustments written into the measures.
+  // Rates derived from each measure's starting rate and the published FY2026-27 rate:
+  // H(2024) $0.5400 (FY25-26) -> $0.55620 = 3.00%; H(2020) $0.0910 -> $0.10969 and
+  // E(2020) $0.1240 -> $0.14944, both 3.16% over six adjustments.
+  { id: 'sch_bsep',         shortLabel: 'School Tax (H)',  type: 'sqft_based', rate: 0.55620, duration: null, escalator: 0.0300 },
+  { id: 'sch_maint',        shortLabel: 'Sch. Maintenance',type: 'sqft_based', rate: 0.10969, duration: null, escalator: 0.0316 },
+  { id: 'sch_educator',     shortLabel: 'Educator Recruit',type: 'sqft_based', rate: 0.14944, duration: null, escalator: 0.0316 },
 
   // ── County / regional / special-district flat charges ───────────
+  // Peralta Measure E (2018): $48 per parcel, eight years, no cost-of-living
+  // adjustment. Verified fixed, not merely unchecked.
   { id: 'reg_peralta',      shortLabel: 'Peralta',         type: 'flat',       rate: 48,     duration: null },
   { id: 'reg_transit',      shortLabel: 'AC Transit',      type: 'flat',       rate: 96,     duration: null },
-  { id: 'reg_ebmud',        shortLabel: 'EBMUD Wet Wthr',  type: 'flat',       rate: 160,    duration: null },
+  { id: 'reg_ebmud',        shortLabel: 'EBMUD Wet Wthr',  type: 'flat',       rate: 160,    duration: null, escalator: 0.04 },
+  // CSA Paramedic, Regional Parks and Bay Restoration are verified fixed, not merely
+  // unchecked.
   { id: 'reg_csa_para',     shortLabel: 'CSA Paramedic',   type: 'flat',       rate: 41,     duration: null },
   { id: 'reg_parks',        shortLabel: 'Regional Parks',  type: 'flat',       rate: 17,     duration: null },
-  { id: 'reg_vector',       shortLabel: 'Mosq./Vector',    type: 'flat',       rate: 17,     duration: null },
+  // Mosquito/vector: three bill lines ($1.74 Msr K 1982, $5.92 Msr A 1984, $2.90 asmt
+  // 2008, plus $6.56 vector assessment). The 2008 benefit assessment carries an annual
+  // CPI increase capped at 3% (ACMAD Engineer's Report FY2025-26, Resolution 937-1);
+  // applied to the group as the only published escalator for these lines.
+  { id: 'reg_vector',       shortLabel: 'Mosq./Vector',    type: 'flat',       rate: 11,     duration: null, escalator: 0.03 },
   { id: 'reg_bay',          shortLabel: 'Bay Restoration', type: 'flat',       rate: 12,     duration: null },
-  { id: 'reg_hazwaste',     shortLabel: 'Haz. Waste',      type: 'flat',       rate: 18,     duration: null },
+  { id: 'reg_hazwaste',     shortLabel: 'Haz. Waste',      type: 'flat',       rate: 8,      duration: null, escalator: 0.03 },
 ];
 
 // Display structure — jurisdictional rollup for sidebar (two categories, expandable fixed charges)
@@ -888,19 +1031,15 @@ const INCUMBENT_ROLLUP = [
     ],
   },
   {
-    id: 'fixed_charges_cat',
-    label: 'Fixed Annual Charges',
-    note: 'Parcel taxes and special assessments — City and BUSD levies are $/sqft of improvements',
-    tooltip: 'In addition to percentage-based property taxes, Berkeley owners pay parcel taxes and special assessments. The City and school levies are assessed per square foot of building improvements at published rates (tax year 2026-27); county and special-district charges are flat per-parcel amounts. Most City levies carry a published annual rate increase (4.95% for most, 3.80% for the paramedic tax), which compounds over the projection. A 2,192 sqft home pays roughly $4,800/yr in total fixed charges.',
+    id: 'city_parcel_cat',
+    label: 'City of Berkeley Parcel Taxes',
+    note: 'Per square foot of building improvements — published tax-year 2026-27 residential rates',
+    tooltip: 'Voter-approved City parcel taxes, assessed per square foot of building improvements at the rates the City publishes for tax year 2026-27. Most carry a published annual rate increase — 4.95% for all but the Paramedic Supplemental tax, which rises 3.80% — and those compound over the projection. Storm water is the exception: it is charged on lot area and runoff type rather than building size, and is approximated here.',
     computeIds: ['city_streetlight','city_parks','city_library','city_lib_relief','city_paramedic',
-                 'city_disabled','city_fire_gg','city_fire_ff','city_streets','city_stormwater',
-                 'sch_bsep','sch_maint','sch_educator',
-                 'reg_peralta','reg_transit','reg_ebmud','reg_csa_para','reg_parks','reg_vector',
-                 'reg_bay','reg_hazwaste'],
+                 'city_disabled','city_fire_gg','city_fire_ff','city_streets','city_stormwater'],
     expandable: true,
     subitems: [
-      // City — sqft-based (published FY2026-27 residential rates)
-      { label: 'Street Lighting (City)',            computeIds: ['city_streetlight'], note: '$0.0108/sqft'                  },
+      { label: 'Street Lighting (City)',            computeIds: ['city_streetlight'], note: '$0.0108/sqft · +3%/yr'                  },
       { label: 'Parks, Trees & Landscaping (City)', computeIds: ['city_parks'],       note: '$0.2783/sqft · +4.95%/yr'      },
       { label: 'Library Services (City)',           computeIds: ['city_library'],     note: '$0.3128/sqft · +4.95%/yr'      },
       { label: 'Library Relief Act (Measure X 2024)', computeIds: ['city_lib_relief'],note: '$0.063/sqft · +4.95%/yr'       },
@@ -909,21 +1048,38 @@ const INCUMBENT_ROLLUP = [
       { label: 'Fire Protection (Measure GG 2008)', computeIds: ['city_fire_gg'],     note: '$0.0703/sqft · +4.95%/yr'      },
       { label: 'Fire &amp; Wildfire Prevention (FF 2020)', computeIds: ['city_fire_ff'], note: '$0.1363/sqft · +4.95%/yr'   },
       { label: 'SAFE STREETS (Measure FF 2024)',    computeIds: ['city_streets'],     note: '$0.1748/sqft · +4.95%/yr'      },
-      // City — flat
-      { label: 'Storm Water (City)',                computeIds: ['city_stormwater'],  note: '~$91 · lot-based, est.'        },
-      // Schools — sqft-based (published BUSD rates)
-      { label: 'Berkeley School Tax (Measure H 2024)', computeIds: ['sch_bsep'],      note: '$0.5562/sqft'                  },
-      { label: 'School Maintenance (Measure H 2020)',  computeIds: ['sch_maint'],     note: '$0.1097/sqft'                  },
-      { label: 'Educator Recruitment (Measure E 2020)',computeIds: ['sch_educator'],  note: '$0.1494/sqft'                  },
-      // County / regional — flat
-      { label: 'Community College (Peralta)',       computeIds: ['reg_peralta'],      note: '$48 flat'                      },
+      { label: 'Storm Water (City)',                computeIds: ['city_stormwater'],  note: '~$91 · lot-based · +3%/yr cap'        },
+    ],
+  },
+  {
+    id: 'school_parcel_cat',
+    label: 'School Parcel Taxes',
+    note: 'Berkeley Unified levies per square foot, plus the Peralta community college district',
+    tooltip: 'Berkeley Unified School District parcel taxes are assessed per square foot of building improvements. All three carry annual cost-of-living adjustments written into the measures themselves. The City does not publish those rates, so each is derived from the measure\u2019s starting rate and the published rate for tax year 2026-27: Measure H (2024) rose from $0.5400 to $0.55620 in one year, exactly 3.00%; Measures H and E of 2020 both work out to 3.16% a year over six adjustments. The Peralta Community College District charge is a flat per-parcel amount.',
+    computeIds: ['sch_bsep','sch_maint','sch_educator','reg_peralta'],
+    expandable: true,
+    subitems: [
+      { label: 'Berkeley School Tax (Measure H 2024)', computeIds: ['sch_bsep'],      note: '$0.5562/sqft · +3.00%/yr'                  },
+      { label: 'School Maintenance (Measure H 2020)',  computeIds: ['sch_maint'],     note: '$0.1097/sqft · +3.16%/yr'                  },
+      { label: 'Educator Recruitment (Measure E 2020)',computeIds: ['sch_educator'],  note: '$0.1494/sqft · +3.16%/yr'                  },
+      { label: 'Community College (Peralta)',       computeIds: ['reg_peralta'],      note: '$48 flat · no escalator'                      },
+    ],
+  },
+  {
+    id: 'county_parcel_cat',
+    label: 'County & Regional Assessments',
+    note: 'Flat per-parcel charges from county agencies and special districts',
+    tooltip: 'Flat per-parcel charges levied by county agencies and regional special districts rather than by Berkeley. Amounts are taken from an Alameda County secured property tax bill. The mosquito and vector control assessment rises with CPI capped at 3% a year, EBMUD raises the wet weather facilities charge 4% a year, and the household hazardous waste charge also rises. The CSA paramedic, regional parks and bay restoration charges are fixed, as is the Peralta parcel tax \u2014 $48 per parcel for eight years with no cost-of-living adjustment.',
+    computeIds: ['reg_transit','reg_ebmud','reg_csa_para','reg_parks','reg_vector','reg_bay','reg_hazwaste'],
+    expandable: true,
+    subitems: [
       { label: 'AC Transit (Measure VV)',           computeIds: ['reg_transit'],      note: '$96 flat'                      },
-      { label: 'EBMUD Wet Weather',                 computeIds: ['reg_ebmud'],        note: '$160 flat'                     },
-      { label: 'CSA Paramedic (County)',            computeIds: ['reg_csa_para'],     note: '$41 flat'                      },
-      { label: 'Regional Parks (EBRPD)',            computeIds: ['reg_parks'],        note: '$17 flat'                      },
-      { label: 'Mosquito &amp; Vector Control',     computeIds: ['reg_vector'],       note: '$17 flat'                      },
-      { label: 'Bay Restoration (SFBRA Measure AA)',computeIds: ['reg_bay'],          note: '$12 flat'                      },
-      { label: 'Hazardous Waste Program',           computeIds: ['reg_hazwaste'],     note: '$18 flat'                      },
+      { label: 'EBMUD Wet Weather',                 computeIds: ['reg_ebmud'],        note: '$160 · +4%/yr'                     },
+      { label: 'CSA Paramedic (County)',            computeIds: ['reg_csa_para'],     note: '$41 flat · no escalator'                      },
+      { label: 'Regional Parks (EBRPD)',            computeIds: ['reg_parks'],        note: '$17 flat · no escalator'                      },
+      { label: 'Mosquito &amp; Vector Control',     computeIds: ['reg_vector'],       note: '$11 · +3%/yr cap'              },
+      { label: 'Bay Restoration (SFBRA Measure AA)',computeIds: ['reg_bay'],          note: '$12 flat · no escalator'                      },
+      { label: 'Hazardous Waste Program',           computeIds: ['reg_hazwaste'],     note: '$8 · +3%/yr'                      },
     ],
   },
 ];
@@ -948,6 +1104,8 @@ const SQFT_BANDS = makeBands(800, 4000, 100);                // 32 cols
 // SCENARIO PRESETS
 // ════════════════════════════════════════════════════════════════
 const PRESETS = {
+  // Baseline-only view: what the household already pays, with nothing new passing.
+  'none':      { berkeley_bond:false, berkeley_sales_tax:false, regional_transit:false, public_bank:false, arts_parcel:false },
   'city-only': { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:false, public_bank:true, arts_parcel:true },
   'all':       { berkeley_bond:true, berkeley_sales_tax:true, regional_transit:true,  public_bank:true, arts_parcel:true },
 
@@ -966,6 +1124,8 @@ let state = {
   avGrowth:   0.02,
   inflation:  0.03,
   bondRate:   0.057,   // coupon implied by the City's own $44 projection — see sources/bonds/
+  viewYear:   0,       // projection year the detail panel and sidebar are showing
+  assumeRenew: true,   // taxes continue past their stated sunset dates
 
   projYears:  30,
   selAV:   null,   // index into AV_BANDS
@@ -973,7 +1133,10 @@ let state = {
 };
 
 let chart = null;
-const expandedRollup = new Set(); // tracks which fixed-charge category rows are expanded
+// Tracks which fixed-charge category rows are expanded. Expanded by default: the
+// point of the panel is to show every levy on the bill, and collapsing the 21
+// fixed charges hid all but the four property-tax lines.
+const expandedRollup = new Set(['city_parcel_cat','school_parcel_cat','county_parcel_cat']);
 
 // ════════════════════════════════════════════════════════════════
 // COMPUTATION
@@ -1009,6 +1172,52 @@ function rawCost(m, curAV, sqft, curSpd, yr = 0) {
     case 'sales_tax':  return curSpd * 12 * m.rate;
     default: return 0;
   }
+}
+
+// ── Year-aware costs ────────────────────────────────────────────
+// The panel's subject is the bill over time, not the bill today. These return
+// what a household pays in projection year `yr`, with assessed value and taxable
+// spending grown to that year and every escalator and bond tranche applied.
+function avAtYear(av, yr)   { return av * Math.pow(1 + state.avGrowth, yr); }
+function spdAtYear(spd, yr) { return spd * Math.pow(1 + state.inflation, yr); }
+
+// Effective life of a levy. Bond debt service always ends — it repays a fixed
+// amount borrowed. Taxes end on their stated date only if the reader unchecks
+// "Assume taxes renew".
+function effectiveDuration(m) {
+  if (m.type === 'av_tranches') return m.duration;
+  if (state.assumeRenew) return m.duration;
+  return m.statedDuration ?? m.duration;
+}
+
+function costAtYear(m, av, sqft, spending, yr) {
+  const d = effectiveDuration(m);
+  if (d !== null && d !== undefined && yr >= d) return 0;
+  return rawCost(m, avAtYear(av, yr), sqft, spdAtYear(spending, yr), yr);
+}
+
+function incumbentTotalAtYear(av, sqft, spending, yr) {
+  if (!state.includeBaseline) return 0;
+  return INCUMBENT_COMPUTE.reduce((a, m) => a + costAtYear(m, av, sqft, spending, yr), 0);
+}
+
+function proposedTotalAtYear(av, sqft, spending, yr) {
+  return MEASURES.reduce((a, m) =>
+    state.enabled[m.id] ? a + costAtYear(m, av, sqft, spending, yr) : a, 0);
+}
+
+function measureCostAtYear(m, av, sqft, spending, yr) {
+  if (!state.enabled[m.id]) return 0;
+  return costAtYear(m, av, sqft, spending, yr);
+}
+
+// Sort key from the measure letter in the label ("Measure U:", "Prop RTM:").
+// Single letters first in A-Z order, then multi-letter (AA), then anything unlettered.
+function ballotRank(m) {
+  const mt = /^(?:Measure|Prop)\s+([A-Z]+)\b/.exec(m.label || '');
+  if (!mt) return 9000;
+  const L = mt[1];
+  return L.length * 100 + (L.charCodeAt(0) - 65);
 }
 
 // Proposed measure cost (respects enabled state)
@@ -1138,6 +1347,44 @@ function tagHTML(m) {
 // ════════════════════════════════════════════════════════════════
 // ROLLUP TOOLTIPS  (static panels appended to body once)
 // ════════════════════════════════════════════════════════════════
+// Why the projected bill moves. Each is attached to a "why?" link in the summary.
+const WHY_TOOLTIPS = {
+  'why-grows':
+    'The infrastructure bond is borrowed in three pieces, five years apart \u2014 the City plans ' +
+    '$100 million in 2027, again in 2032, and again in 2037. You only pay for what has been ' +
+    'borrowed so far, so the cost climbs as each piece is added and does not reach its full ' +
+    'amount until the late 2030s. The first-year figure is the smallest it will ever be. ' +
+    'Most of the parcel taxes you already pay also rise about 4.95% every year, which is set ' +
+    'in the measures themselves.',
+  'why-property':
+    'A bond is a fixed bill divided among every property in the city. If Berkeley\u2019s total ' +
+    'property value keeps climbing, your share of that bill shrinks; if values flatten, your ' +
+    'share grows. The City\u2019s own $44 estimate only works if the tax base grows roughly 4% a ' +
+    'year \u2014 nearly doubling by 2040. This assumption is not stated in the measure. If ' +
+    'values stay flat instead, the bond costs about 70% more than advertised.',
+  'why-bondmkt':
+    'The City does not borrow the $300 million all at once. It plans three sales \u2014 2027, ' +
+    '2032 and 2037 \u2014 and each one locks in whatever interest rate the market offers that ' +
+    'year. Two-thirds of this borrowing is priced years after you vote on it. Working backward ' +
+    'from the City\u2019s own figures, its estimate assumes about 5.7%; this assumption is not ' +
+    'stated in the measure either. If rates run to 8%, the bond costs roughly a quarter more. ' +
+    'There is no second vote: the county levies whatever is needed to make the payments, ' +
+    '\u201cwithout limitation as to rate or amount\u201d in the bond documents\u2019 own words.',
+  'why-renew':
+    'Berkeley\u2019s record is that taxes outlive their end dates. Measure P (2018) was set to ' +
+    'expire January 1, 2029; in November 2024 \u2014 four years early \u2014 Measure W removed the ' +
+    'expiration date entirely and raised the rates. So the projection assumes parcel taxes ' +
+    'continue past the sunsets written into them. Uncheck this to see the cost if every measure ' +
+    'ends exactly when it promises. Bond debt service ends either way: it repays a fixed amount ' +
+    'borrowed, not a tax that can be renewed.',
+  'why-policy':
+    'When a parcel leaves the tax rolls, the same bill is divided among fewer properties and ' +
+    'everyone else pays more. Transfers to nonprofits and land trusts \u2014 Small Sites ' +
+    'acquisitions among them \u2014 can make a property exempt, or freeze it under Proposition 13 ' +
+    'at 2% a year with no sale to reset it. University expansion removes parcels from taxation ' +
+    'the same way. None of it is counted against the growth the bond math assumes.',
+};
+
 function initRollupTooltips() {
   for (const cat of INCUMBENT_ROLLUP) {
     const panel = document.createElement('div');
@@ -1147,13 +1394,21 @@ function initRollupTooltips() {
     panel.textContent = cat.tooltip;
     document.body.appendChild(panel);
   }
+  for (const [id, text] of Object.entries(WHY_TOOLTIPS)) {
+    const panel = document.createElement('div');
+    panel.id = 'rollup-tt-' + id;
+    panel.className = 'rollup-tooltip-panel';
+    panel.hidden = true;
+    panel.textContent = text;
+    document.body.appendChild(panel);
+  }
 }
 
 // Build HTML for one rollup category row (property taxes or fixed charges)
-function rollupCatHTML(cat, av, sqft, total) {
+function rollupCatHTML(cat, av, sqft, total, yr = 0) {
   const cost = cat.computeIds.reduce((s, id) => {
     const m = INCUMBENT_COMPUTE.find(x => x.id === id);
-    return s + (m ? rawCost(m, av, sqft, 0) : 0);
+    return s + (m ? costAtYear(m, av, sqft, 0, yr) : 0);
   }, 0);
   // Use rawCost via computeIds when populated; fall back to fixedCost(av, sqft) for
   // display-only subitems (e.g. jurisdiction sub-splits of property tax)
@@ -1162,18 +1417,44 @@ function rollupCatHTML(cat, av, sqft, total) {
     if (sub.computeIds && sub.computeIds.length > 0) {
       subCost = sub.computeIds.reduce((s, id) => {
         const m = INCUMBENT_COMPUTE.find(x => x.id === id);
-        return s + (m ? rawCost(m, av, sqft, 0) : 0);
+        return s + (m ? costAtYear(m, av, sqft, 0, yr) : 0);
       }, 0);
     } else if (sub.fixedCost) {
-      subCost = sub.fixedCost(av, sqft);
+      subCost = sub.fixedCost(avAtYear(av, yr), sqft);
     } else {
       subCost = 0;
     }
-    return `<div class="rollup-subitem">
-      <span class="rollup-sub-label">${sub.label}
+    // Mark levies that rise every year, and show how far this one has risen by the
+    // year on display. A row with no marker is fixed by its own terms.
+    // Rising means the charge grows year over year — either the rate escalates, or
+    // it is levied on assessed value, which grows on its own.
+    const ids = sub.computeIds || [];
+    const rises = ids.some(id => {
+      const m = INCUMBENT_COMPUTE.find(x => x.id === id);
+      return m && (m.escalator || m.type === 'av_exempt' || m.type === 'av_based');
+    }) || (!ids.length && sub.fixedCost && state.avGrowth > 0);
+    let growth = '';
+    if (rises && yr > 0) {
+      const base = ids.length
+        ? ids.reduce((a, id) => {
+            const m = INCUMBENT_COMPUTE.find(x => x.id === id);
+            return a + (m ? costAtYear(m, av, sqft, 0, 0) : 0);
+          }, 0)
+        : (sub.fixedCost ? sub.fixedCost(av, sqft) : 0);
+      if (base > 0) {
+        const pct = Math.round((subCost / base - 1) * 100);
+        // Bond cohorts fall as they mature, so this is not always a rise.
+        if (pct !== 0) {
+          growth = `<span class="rise-delta${pct < 0 ? ' falls' : ''}">${pct > 0 ? '+' : ''}${pct}%</span>`;
+        }
+      }
+    }
+    const falls = growth.includes('falls');
+    return `<div class="rollup-subitem${rises && !falls ? ' rises' : ''}">
+      <span class="rollup-sub-label">${rises ? `<span class="rise-mark${falls ? ' down' : ''}">${falls ? '&#9660;' : '&#9650;'}</span>` : ''}${sub.label}
         <span class="rollup-sub-note">${sub.note}</span>
       </span>
-      <span class="rollup-sub-amount">${fmt$(subCost)}</span>
+      <span class="rollup-sub-amount">${fmt$(subCost)}${growth}</span>
     </div>`;
   }).join('');
 
@@ -1199,8 +1480,8 @@ function rollupCatHTML(cat, av, sqft, total) {
 }
 
 // Full incumbent breakdown section HTML
-function renderIncumbentRollupHTML(av, sqft, total) {
-  return INCUMBENT_ROLLUP.map(cat => rollupCatHTML(cat, av, sqft, total)).join('');
+function renderIncumbentRollupHTML(av, sqft, total, yr = 0) {
+  return INCUMBENT_ROLLUP.map(cat => rollupCatHTML(cat, av, sqft, total, yr)).join('');
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1471,28 +1752,32 @@ function renderDetail() {
       ${state.includeBaseline ? `<span class="detail-cost-delta">if selected pass (+${fmt$(delta)}/yr)</span>` : ''}
       <span class="detail-cost-future">${futureLabel}</span>
     </div>
+    <div class="chart-cap">What the new measures add, year by year &mdash; on top of the ${fmt$(todayCost)}/yr you already pay</div>
     <div class="chart-wrap"><canvas id="proj-canvas"></canvas></div>
   `;
 
   if (chart) { chart.destroy(); chart = null; }
 
   const labels = proj.map((_, i) => i === 0 ? 'Yr 0' : `Yr ${i}`);
-  const layers = projectLayers(av, sqft, spending);
+  const layers = projectLayers(avBand.mid, sqftBand.mid, spending);
   const ctx    = document.getElementById('proj-canvas').getContext('2d');
 
   // Build expiry-line annotations for measures that end within the projection window
   const annotations = {};
 
   // Proposed measure expirations (red)
+  // Mark the sunset the ballot PROMISES, not a drop in the line — these taxes are
+  // modeled as renewing, so the cost does not fall here. See RENEWAL ASSUMPTION.
   for (const m of MEASURES) {
-    if (!state.enabled[m.id] || m.duration === null) continue;
-    if (m.duration > state.projYears) continue;
-    const xLabel = `Yr ${m.duration}`;
+    if (!state.enabled[m.id]) continue;
+    const d = m.statedDuration ?? m.duration;
+    if (d === null || d === undefined || d > state.projYears) continue;
+    const xLabel = `Yr ${d}`;
     annotations[`expire_${m.id}`] = {
       type: 'line', xMin: xLabel, xMax: xLabel,
       borderColor: 'rgba(185,28,28,0.55)', borderWidth: 1.5, borderDash: [5, 4],
       label: {
-        display: true, content: `${m.shortLabel} ends`,
+        display: true, content: `${m.shortLabel} sunset`,
         position: 'start', yAdjust: 4,
         backgroundColor: 'rgba(255,255,255,0.92)', color: '#b91c1c',
         font: { size: 9, weight: '600' }, padding: { x: 4, y: 2 },
@@ -1501,51 +1786,45 @@ function renderDetail() {
     };
   }
 
-  // Incumbent bond cohort step-downs (muted gray)
-  if (state.includeBaseline) {
-    for (const m of INCUMBENT_COMPUTE) {
-      if (m.duration === null || m.duration > state.projYears) continue;
-      const xLabel = `Yr ${m.duration}`;
-      annotations[`expire_${m.id}`] = {
-        type: 'line', xMin: xLabel, xMax: xLabel,
-        borderColor: 'rgba(100,100,120,0.4)', borderWidth: 1.5, borderDash: [4, 4],
-        label: {
-          display: true, content: `${m.shortLabel} ends`,
-          position: 'end', yAdjust: -4,
-          backgroundColor: 'rgba(245,245,248,0.95)', color: '#666',
-          font: { size: 9, weight: '600' }, padding: { x: 4, y: 2 },
-          borderRadius: 3, borderColor: 'rgba(120,120,140,0.3)', borderWidth: 1,
-        },
-      };
-    }
+  // Marker at the year the stepper is showing, so the chart and the sidebar
+  // numbers visibly refer to the same point.
+  {
+    const vy = Math.min(state.viewYear, state.projYears);
+    annotations.viewYear = {
+      type: 'line',
+      xMin: vy === 0 ? 'Yr 0' : `Yr ${vy}`,
+      xMax: vy === 0 ? 'Yr 0' : `Yr ${vy}`,
+      borderColor: '#1a3a5c', borderWidth: 2,
+      label: {
+        display: true,
+        content: vy === 0 ? 'now' : `yr ${vy}`,
+        position: 'start', yAdjust: -2,
+        backgroundColor: '#1a3a5c', color: '#fff',
+        font: { size: 9, weight: '700' }, padding: { x: 5, y: 2 },
+        borderRadius: 3,
+      },
+    };
   }
 
   chart = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
+      // Only the NEW measures are charted. Stacked against the existing tax base
+      // ($12k-$25k) a $600 measure is 2% of the plot height and invisible, which
+      // defeats the point. The existing burden is stated in the header and sidebar;
+      // this chart answers one question: what do the new measures do to me over time?
       datasets: [
-        // Stacked composition: existing taxes on the bottom (they shrink as bonds
-        // mature), the infrastructure bond on top (it grows as tranches are issued).
-        // Stacking is what makes the ramp visible inside a falling total.
-        ...(state.includeBaseline ? [{
-          label: 'Taxes you already pay',
-          data: layers.incumbent,
-          backgroundColor: 'rgba(120,124,140,0.35)',
-          borderColor: 'rgba(120,124,140,0.9)',
-          fill: 'origin', stack: 'cost', tension: 0.3,
-          pointRadius: 0, pointHoverRadius: 5, borderWidth: 1.5,
-        }] : []),
         {
-          label: 'New measures (level)',
+          label: 'Other new measures',
           data: layers.other,
           backgroundColor: 'rgba(26,58,92,0.30)',
           borderColor: 'rgba(26,58,92,0.9)',
-          fill: '-1', stack: 'cost', tension: 0.3,
+          fill: 'origin', stack: 'cost', tension: 0.3,
           pointRadius: 0, pointHoverRadius: 5, borderWidth: 1.5,
         },
         {
-          label: 'Infrastructure bond (grows)',
+          label: 'Infrastructure bond (grows over time)',
           data: layers.bond,
           backgroundColor: 'rgba(234,88,12,0.45)',
           borderColor: '#ea580c',
@@ -1594,7 +1873,7 @@ function renderDetail() {
 // ════════════════════════════════════════════════════════════════
 function renderSidebar() {
   const sbSummary    = document.getElementById('sb-summary');
-  const sbBreakdown  = document.getElementById('sb-breakdown');
+  const sbBreakdown  = null; // breakdown renders into #breakdown-wide
   const sbAssumptions= document.getElementById('sb-assumptions');
 
   // Assumptions — always shown
@@ -1604,13 +1883,24 @@ function renderSidebar() {
     <div class="assump-row"><span>Spending Inflation</span><span>${fmtPct(state.inflation)}/yr</span></div>
     <div class="assump-row"><span>Bond Interest Rate</span><span>${fmtPct(state.bondRate)}</span></div>
     <div class="assump-row"><span>Time Horizon</span><span>${state.projYears} years</span></div>
-    <div class="sb-disclosure">Taxes are modeled as continuing over time, reflecting historical renewal patterns. Bonds expire as scheduled. Actual future taxes may vary.</div>
+    <div class="sb-disclosure"><strong>All future amounts are in the dollars of that year</strong>, not adjusted for inflation &mdash; the way a tax bill actually arrives. Part of the growth shown is general inflation rather than a heavier real burden; the City levies rising 4.95% a year outpace it, the fixed charges do not.</div>
     <div class="sb-disclosure">Property tax rates shown are estimates based on publicly available Alameda County rate data. Bond debt service rates decline as existing bonds mature.</div>
   `;
 
+
+  const selBar = document.getElementById('sel-bar');
+  const bdWide = document.getElementById('breakdown-wide');
+  const mtxWrp = document.getElementById('matrix-wrap');
   if (state.selAV === null || state.selSqft === null) {
+    // No selection: the grid is the whole point, so show it and hide the rest.
+    if (selBar) selBar.hidden = true;
+    if (bdWide) { bdWide.hidden = true; bdWide.innerHTML = ''; }
+    const rh0 = document.getElementById('results-head');
+    if (rh0) rh0.hidden = true;
+    const rs0 = document.getElementById('ramp-slot');
+    if (rs0) rs0.innerHTML = '';
+    if (mtxWrp) mtxWrp.hidden = false;
     sbSummary.innerHTML   = '<div class="sb-empty">Select a cell in the matrix to see your cost summary</div>';
-    sbBreakdown.innerHTML = '<div class="sb-empty">Select a cell to see per-measure costs</div>';
     return;
   }
 
@@ -1619,8 +1909,24 @@ function renderSidebar() {
   const av       = avBand.mid;
   const sqft     = sqftBand.mid;
   const spending = state.monthlySpending;
-  const incCost  = incumbentTotal(av, sqft, spending);
-  const propCost = proposedTotal(av, sqft, spending);
+
+  // Selected: the grid has done its job — swap it out for the breakdown.
+  if (mtxWrp) mtxWrp.hidden = true;
+  const resultsHead = document.getElementById('results-head');
+  if (resultsHead) resultsHead.hidden = false;
+  if (selBar) {
+    selBar.hidden = false;
+    document.getElementById('sel-bar-text').innerHTML =
+      `Assessed <strong>${fmtAV(avBand.lo)}&ndash;${fmtAV(avBand.hi)}</strong>` +
+      ` &nbsp;\u00b7&nbsp; <strong>${sqftBand.lo.toLocaleString()}&ndash;${sqftBand.hi.toLocaleString()}</strong> sq ft`;
+  }
+
+
+  // Everything below is rendered AT the selected projection year. Year 0 is the
+  // bill today; the reader's real question is what it becomes.
+  const yr       = Math.min(state.viewYear, state.projYears);
+  const incCost  = incumbentTotalAtYear(av, sqft, spending, yr);
+  const propCost = proposedTotalAtYear(av, sqft, spending, yr);
   const current  = incCost + propCost;
   const proj     = projectCosts(av, sqft, spending);
   const peakCost = Math.max(...proj);
@@ -1628,6 +1934,28 @@ function renderSidebar() {
   const finalCost = proj[proj.length - 1];
   const peakAtEnd = peakYear === proj.length - 1;
   const active   = MEASURES.filter(m => state.enabled[m.id]);
+
+  // ── Year stepper readout ─────────────────────────────────────
+  {
+    const yearNow  = new Date().getFullYear();
+    const todayAll = incumbentTotalAtYear(av, sqft, spending, 0)
+                   + proposedTotalAtYear(av, sqft, spending, 0);
+    document.getElementById('yr-label').textContent =
+      yr === 0 ? `This year (${yearNow})` : `Year ${yr} (${yearNow + yr})`;
+    document.getElementById('yr-cost').textContent = fmt$(current) + '/yr';
+    document.getElementById('yr-back').disabled = yr <= 0;
+    document.getElementById('yr-fwd').disabled  = yr >= state.projYears;
+    const d = document.getElementById('yr-delta');
+    if (yr === 0) {
+      // Nothing to compare today against — the slot fills once the reader steps.
+      d.innerHTML = '';
+    } else {
+      const diff = current - todayAll;
+      const pct  = todayAll > 0 ? Math.round(diff / todayAll * 100) : 0;
+      d.innerHTML = `${diff >= 0 ? '+' : '\u2212'}${fmt$(Math.abs(diff))} vs. today (${diff >= 0 ? '+' : '\u2212'}${Math.abs(pct)}%)`
+        + `<span class="nominal-note">future dollars</span>`;
+    }
+  }
 
   // Projected-cost line
   let projectedHTML;
@@ -1644,6 +1972,9 @@ function renderSidebar() {
   // understates it, so name the ramp explicitly wherever one is selected.
   const rampMeasures = MEASURES.filter(m =>
     state.enabled[m.id] && m.type === 'av_tranches');
+  // Bond cost AT THE SELECTED YEAR — the summary must track the stepper.
+  const bondCost = rampMeasures.reduce((a, m) =>
+    a + measureCostAtYear(m, av, sqft, spending, yr), 0);
   let rampHTML = '';
   if (rampMeasures.length) {
     const nowCost  = rampMeasures.reduce((a, m) => a + rawCost(m, av, sqft, spending, 0), 0);
@@ -1653,10 +1984,15 @@ function renderSidebar() {
     const atPeak   = rampMeasures.reduce((a, m) => a + rawCost(m, avAtPeak, sqft, spending, peakOff), 0);
     rampHTML = `
       <div class="ramp-warn">
-        <strong>This bill grows.</strong> The infrastructure bond is borrowed in three
-        pieces, five years apart — so it starts at <strong>${fmt$(nowCost)}/yr</strong>
-        and climbs to about <strong>${fmt$(atPeak)}/yr</strong> by year ${peakOff},
-        then runs into the 2060s. The first-year number is the smallest it will ever be.
+        <div class="why-line"><strong>This bill grows.</strong>
+          ${fmt$(nowCost)}/yr now &rarr; about ${fmt$(atPeak)}/yr by year ${peakOff}.
+          <button class="why-btn" data-rollup-tooltip="why-grows">why?</button></div>
+        <div class="why-line">Berkeley property values can affect it.
+          <button class="why-btn" data-rollup-tooltip="why-property">why?</button></div>
+        <div class="why-line">The bond market can affect it.
+          <button class="why-btn" data-rollup-tooltip="why-bondmkt">why?</button></div>
+        <div class="why-line">City policies can affect it.
+          <button class="why-btn" data-rollup-tooltip="why-policy">why?</button></div>
       </div>`;
   }
 
@@ -1670,19 +2006,19 @@ function renderSidebar() {
       </div>
       ${rampMeasures.length ? `
       <div class="split-row">
-        <span class="split-label">+ Infrastructure bond <span class="split-sub">(rises over time)</span></span>
-        <span class="split-amount proposed">+${fmt$(rampMeasures.reduce((a, m) => a + measureAnnualCost(m, av, sqft, spending), 0))}/yr</span>
+        <span class="split-label">+ Infrastructure bond</span>
+        <span class="split-amount proposed">+${fmt$(bondCost)}/yr</span>
       </div>
       <div class="split-row">
-        <span class="split-label">+ Other new measures <span class="split-sub">(roughly level)</span></span>
-        <span class="split-amount proposed">+${fmt$(propCost - rampMeasures.reduce((a, m) => a + measureAnnualCost(m, av, sqft, spending), 0))}/yr</span>
+        <span class="split-label">+ Other new measures</span>
+        <span class="split-amount proposed">+${fmt$(propCost - bondCost)}/yr</span>
       </div>` : `
       <div class="split-row">
         <span class="split-label">+ New measures</span>
         <span class="split-amount proposed">+${fmt$(propCost)}/yr</span>
       </div>`}
       <div class="split-row total-row">
-        <span class="split-label total">Total today</span>
+        <span class="split-label total">${yr === 0 ? 'Total today' : `Total in ${new Date().getFullYear() + yr}`}</span>
         <span class="split-amount total">${fmt$(current)}/yr</span>
       </div>`;
   } else {
@@ -1691,45 +2027,64 @@ function renderSidebar() {
       <div class="sb-total-label">proposed measures only</div>`;
   }
 
+  const rampSlot = document.getElementById('ramp-slot');
+  if (rampSlot) rampSlot.innerHTML = rampHTML;
+
   sbSummary.innerHTML = `
     ${summaryHTML}
-    <div class="sb-projected" style="margin-top:8px">${projectedHTML}</div>
-    ${rampHTML}
     <div class="sb-measure-count">${active.length} proposed measure${active.length !== 1 ? 's' : ''} selected
       &nbsp;·&nbsp; AV ${fmtAV(avBand.lo)} band &nbsp;·&nbsp; ${sqftBand.lo.toLocaleString()} sqft band</div>
   `;
 
-  // Breakdown — incumbent rollup (jurisdictional) + proposed measures table
+  // Breakdown — the measures being voted on come FIRST; the existing bill follows.
+  // The new measures are what the reader is deciding about; the incumbent rollup is
+  // context for them, not the headline.
   let html = '';
 
-  if (state.includeBaseline) {
-    html += `<div class="breakdown-group-hdr" style="border-top:none;padding-top:0">Current Taxes (est.)</div>`;
-    html += renderIncumbentRollupHTML(av, sqft, current);
-  }
-
-  // Proposed section
   const proposedRows = MEASURES
     .filter(m => state.enabled[m.id])
-    .map(m => ({ m, cost: measureAnnualCost(m, av, sqft, spending) }))
-    .sort((a, b) => b.cost - a.cost);
+    .map(m => ({ m, cost: measureCostAtYear(m, av, sqft, spending, yr) }))
+    // Ballot order, so the list reads the way the ballot does (U, V, Y, Z, AA),
+    // rather than by cost — which put U after Z.
+    .sort((a, b) => ballotRank(a.m) - ballotRank(b.m));
 
-  html += `<div class="breakdown-group-hdr">New Proposed Measures</div>`;
+  html += `<div class="proposed-box">`;
+  html += `<div class="breakdown-group-hdr" style="border-top:none;padding-top:0">New Proposed Measures</div>`;
   html += `<table class="breakdown-table"><tbody>`;
   if (proposedRows.length === 0) {
     html += `<tr><td colspan="3" style="font-style:italic;color:#ccc;font-size:11px;padding:4px 0">None selected</td></tr>`;
   } else {
     for (const { m, cost } of proposedRows) {
-      const pct = current > 0 ? Math.round(cost / current * 100) : 0;
-      html += `<tr>
-        <td><div class="measure-name-cell">${m.label} ${tagHTML(m)}</div></td>
+      // Same trajectory treatment as the existing levies: a marker for anything that
+      // grows, and how far it has grown by the year on display. (The old column here
+      // was each measure's share of the whole bill, which rounded to 1% for all of
+      // them and told the reader nothing.)
+      const base   = measureCostAtYear(m, av, sqft, spending, 0);
+      const rises  = !!(m.escalator || m.type === 'av_tranches' ||
+                        m.type === 'av_based' || m.type === 'sales_tax');
+      let delta = '';
+      if (rises && yr > 0 && base > 0) {
+        const pct = Math.round((cost / base - 1) * 100);
+        if (pct !== 0) {
+          delta = `<span class="rise-delta${pct < 0 ? ' falls' : ''}">${pct > 0 ? '+' : ''}${pct}%</span>`;
+        }
+      }
+      const falls = delta.includes('falls');
+      html += `<tr class="${rises && !falls ? 'rises' : ''}">
+        <td><div class="measure-name-cell">${rises ? `<span class="rise-mark${falls ? ' down' : ''}">${falls ? '&#9660;' : '&#9650;'}</span>` : ''}${m.label} ${tagHTML(m)}</div></td>
         <td>${fmt$(cost)}</td>
-        <td>${pct}%</td>
+        <td>${delta}</td>
       </tr>`;
     }
   }
-  html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
 
-  sbBreakdown.innerHTML = html;
+  if (state.includeBaseline) {
+    html += `<div class="breakdown-group-hdr">Taxes You Already Pay (est.)</div>`;
+    html += renderIncumbentRollupHTML(av, sqft, current, yr);
+  }
+
+  if (bdWide) { bdWide.hidden = false; bdWide.innerHTML = html; }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1755,6 +2110,12 @@ document.getElementById('inp-av-growth').addEventListener('input', e => {
   state.avGrowth = (parseFloat(e.target.value) || 0) / 100;
   update();
 });
+function setViewYear(y) {
+  state.viewYear = Math.max(0, Math.min(y, state.projYears));
+  update();
+}
+document.getElementById('yr-back').addEventListener('click', () => setViewYear(state.viewYear - 1));
+document.getElementById('yr-fwd').addEventListener('click',  () => setViewYear(state.viewYear + 1));
 document.getElementById('inp-bond-rate').addEventListener('input', e => {
   state.bondRate = (parseFloat(e.target.value) || 0) / 100;
   update();
@@ -1786,7 +2147,9 @@ document.getElementById('cb-baseline').addEventListener('change', e => {
 document.addEventListener('click', closeAllDescs);
 
 // Sidebar rollup: expand/collapse fixed-charge rows & show tooltips
-document.getElementById('sb-breakdown').addEventListener('click', e => {
+// Tooltip/expand delegation. Bound to the whole sidebar, not just the breakdown:
+// the "why?" links live in #sb-summary and were previously out of reach.
+function sidebarClickHandler(e) {
   // Expand toggle
   const expandBtn = e.target.closest('[data-expand]');
   if (expandBtn) {
@@ -1807,44 +2170,40 @@ document.getElementById('sb-breakdown').addEventListener('click', e => {
     if (!panel) return;
     panel.hidden = false;
     const rect = ttBtn.getBoundingClientRect();
-    const panelW = 280;
-    // Prefer opening to the left; fall back right if not enough room
-    if (rect.left >= panelW + 16) {
-      panel.style.left  = rect.left + 'px';
-      panel.style.top   = (rect.bottom + 6) + 'px';
-      panel.className = 'rollup-tooltip-panel left';
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const panelW = Math.min(280, vw - 24);
+    // Position with plain left/top and no transform, then clamp into the viewport
+    // so the panel can neither overflow the screen nor be squeezed by its anchor.
+    panel.className = 'rollup-tooltip-panel';
+    let left = rect.left >= panelW + 16 ? rect.right - panelW : rect.left;
+    left = Math.max(12, Math.min(left, vw - panelW - 12));
+    panel.style.left = left + 'px';
+    // Flip above the anchor when there is not room below.
+    panel.style.top = '';
+    panel.style.bottom = '';
+    const below = vh - rect.bottom;
+    if (below < 140 && rect.top > below) {
+      panel.style.bottom = (vh - rect.top + 6) + 'px';
     } else {
-      panel.style.left  = rect.right + 'px';
-      panel.style.top   = (rect.bottom + 6) + 'px';
-      panel.className = 'rollup-tooltip-panel right';
+      panel.style.top = (rect.bottom + 6) + 'px';
     }
     return;
   }
-});
+}
+// Bound at document level: these controls have moved between containers more than
+// once, and per-container binding kept silently dropping them.
+document.addEventListener('click', sidebarClickHandler, true);
 
-// Reset controls
-document.getElementById('btn-clear').addEventListener('click', () => {
-  state.selAV = null;
-  state.selSqft = null;
+// "Change" returns to the grid by clearing the selection, which swaps the
+// breakdown back out. This replaced the old "Clear Selected Cell" button.
+document.getElementById('cb-renew').addEventListener('change', e => {
+  state.assumeRenew = e.target.checked;
   update();
 });
-document.getElementById('btn-reset').addEventListener('click', () => {
-  state.enabled         = Object.fromEntries(MEASURES.map(m => [m.id, m.defaultEnabled]));
-  state.includeBaseline = true;
-  state.monthlySpending = 2000;
-  state.avGrowth        = 0.02;
-  state.inflation       = 0.03;
-  state.bondRate        = 0.057;
-  state.projYears       = 30;
-  state.selAV           = null;
-  state.selSqft         = null;
-  // Sync input elements
-  document.getElementById('inp-spending').value   = 2000;
-  document.getElementById('inp-av-growth').value  = 2;
-  document.getElementById('inp-inflation').value  = 3;
-  document.getElementById('inp-bond-rate').value  = 5.7;
-  document.getElementById('inp-years').value      = 30;
-  document.getElementById('cb-baseline').checked  = true;
+document.getElementById('sel-bar-change').addEventListener('click', () => {
+  state.selAV = null;
+  state.selSqft = null;
   update();
 });
 
