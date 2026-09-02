@@ -349,6 +349,13 @@
     .sb-projected { font-size: 12px; color: #333; margin-top: 7px; line-height: 1.5; }
     .sb-projected strong { color: #b91c1c; }
     .proj-note { font-size: 10px; color: #888; }
+    .ramp-warn {
+      margin-top: 9px; padding: 8px 10px; font-size: 11px; line-height: 1.55;
+      color: #7c2d12; background: #fff7ed; border: 1px solid #fdba74;
+      border-left: 3px solid #ea580c; border-radius: 3px;
+    }
+    .ramp-warn strong { color: #9a3412; }
+    .split-sub { font-size: 10px; color: #999; font-weight: 400; }
     .sb-measure-count { font-size: 11px; color: #888; margin-top: 5px; }
 
     .sb-empty { font-size: 11px; color: #bbb; font-style: italic; }
@@ -574,7 +581,7 @@
           <input type="checkbox" id="cb-baseline" checked />
           Include current taxes &amp; bonds
         </label>
-        <div class="baseline-desc">Base prop. tax · existing bonds · parcel &amp; sales taxes</div>
+        <div class="baseline-desc">Base prop. tax · existing bonds · parcel taxes &amp; assessments</div>
       </div>
 
       <!-- Presets -->
@@ -614,6 +621,10 @@
           <div class="input-field">
             <label>Projection Years</label>
             <input type="number" id="inp-years" value="30" min="5" max="50" step="5" />
+          </div>
+          <div class="input-field">
+            <label title="The interest rate the City pays when it sells bonds. Fixed at each sale, but Measure U is sold in three pieces years apart, so each is priced at whatever the market offers then. The City's own $44 estimate implies about 5.7%.">Bond Interest Rate (%)</label>
+            <input type="number" id="inp-bond-rate" value="5.7" min="1" max="12" step="0.25" />
           </div>
         </div>
       </div>
@@ -671,15 +682,34 @@ const MEASURES = [
     tag: 'ballot',
     tier: 1,
     tierLabel: 'Tier 1 — Council-initiated',
-    type: 'av_based',
-    rate: 44,          // $ per $100k AV — $300M bond authorization
-    duration: 30,      // years until expiry (null = permanent)
+    // Modeled as three $100M tranches issued five years apart, per the City's own
+    // assumption ("assuming $100 million is issued every five years commencing in
+    // 2027" — Council report, Dec 2, 2025). Each tranche is a 30-year GO bond
+    // costing ~$14 per $100k AV, calibrated so all three outstanding together
+    // reproduce the ~$41-42/$100k peak in the City's projection. The cost RAMPS:
+    // it does not start at its peak, and the authorization runs ~40 years.
+    type: 'av_tranches',
+    tranches: [
+      { offsetYear: 0,  rate: 14, term: 30 },   // issued 2027
+      { offsetYear: 5,  rate: 14, term: 30 },   // issued 2032
+      { offsetYear: 10, rate: 14, term: 30 },   // issued 2037
+    ],
+    rate: 14,          // $ per $100k AV in year 1 (first tranche only)
+    peakRate: 42,      // $ per $100k AV once all three are outstanding
+    peakOffset: 10,    // years from passage until the peak rate is reached
+    duration: 40,      // last tranche matures ~40 years out
     defaultEnabled: true,
     description: 'A general obligation bond funding city infrastructure (streets, buildings, parks), '
       + 'raising <strong>$300 million</strong>. '
-      + 'Homeowners pay <strong>$44 per year for every $100,000 of assessed value</strong> — so a home '
-      + 'assessed at $700,000 pays roughly <strong>$308/year</strong>. Assessed value is typically '
-      + 'lower than market value and grows slowly under Prop 13. Expires after 30 years.',
+      + 'The City plans to issue it in <strong>three $100 million pieces, five years apart</strong> '
+      + '(2027, 2032, 2037), so <strong>the cost climbs as each piece is borrowed</strong> — it does '
+      + 'not start at its full amount. A home assessed at $700,000 pays roughly '
+      + '<strong>$98/year</strong> at first, rising to about <strong>$294/year</strong> once all three '
+      + 'are outstanding in the late 2030s.<br><br>'
+      + 'The City describes the cost as an average of <strong>$44 per $100,000 of assessed value</strong>, '
+      + 'but that figure is the average of the new bond <em>and</em> existing bonds together, spread over '
+      + '40 years. Assessed value is typically lower than market value and grows slowly under Prop 13. '
+      + 'Debt service runs about <strong>40 years</strong>, into the late 2060s.',
   },
   {
     id: 'berkeley_sales_tax',
@@ -807,27 +837,37 @@ const INCUMBENT_COMPUTE = [
   { id: 'debt_short',    shortLabel: 'Bonds (5yr)',       type: 'av_exempt',  rate: 0.002323 * 0.25, duration: 5   },
   { id: 'debt_mid',      shortLabel: 'Bonds (12yr)',      type: 'av_exempt',  rate: 0.002323 * 0.40, duration: 12  },
   { id: 'debt_long',     shortLabel: 'Bonds (25yr)',      type: 'av_exempt',  rate: 0.002323 * 0.35, duration: 25  },
-  // ── City charges — sqft-based (published Berkeley rates) ────────
-  { id: 'city_library',  shortLabel: 'Library (City)',    type: 'sqft_based', rate: 0.28,            duration: null },
-  { id: 'city_lib_fund', shortLabel: 'Library Fund',      type: 'sqft_based', rate: 0.06,            duration: null },
-  { id: 'city_parks',    shortLabel: 'Parks (City)',      type: 'sqft_based', rate: 0.265,           duration: null },
-  { id: 'city_street',   shortLabel: 'Street (City)',     type: 'sqft_based', rate: 0.15,            duration: null },
-  // ── City charges — flat ──────────────────────────────────────────
-  { id: 'city_fire',     shortLabel: 'Fire (City)',       type: 'flat',       rate: 845,             duration: null },
-  { id: 'city_wildfire', shortLabel: 'Wildfire (City)',   type: 'flat',       rate: 532,             duration: null },
-  // ── School charges — sqft-based (estimated, normalized) ─────────
-  { id: 'sch_bsep',      shortLabel: 'BSEP',             type: 'sqft_based', rate: 0.44,            duration: null },
-  { id: 'sch_teacher',   shortLabel: 'Teacher Supp.',     type: 'sqft_based', rate: 0.30,            duration: null },
-  { id: 'sch_facilities',shortLabel: 'Sch. Facilities',  type: 'sqft_based', rate: 0.14,            duration: null },
-  // ── School charges — flat ────────────────────────────────────────
-  { id: 'sch_peralta',   shortLabel: 'Peralta',           type: 'flat',       rate: 130,             duration: null },
-  // ── Regional charges — sqft-based (linear approximation) ────────
-  { id: 'reg_stormwater',shortLabel: 'Stormwater',        type: 'sqft_based', rate: 0.163,           duration: null },
-  // ── Regional charges — flat ──────────────────────────────────────
-  { id: 'reg_transit',   shortLabel: 'AC Transit',        type: 'flat',       rate: 96,              duration: null },
-  { id: 'reg_mosquito',  shortLabel: 'Mosquito Ctrl',     type: 'flat',       rate: 29,              duration: null },
-  { id: 'reg_bay',       shortLabel: 'Bay Restoration',   type: 'flat',       rate: 12,              duration: null },
-  { id: 'reg_parks',     shortLabel: 'Regional Parks',    type: 'flat',       rate: 448,             duration: null },
+
+  // ── City of Berkeley parcel taxes — published FY2026-27 residential
+  //    rates, $/sqft of improvements. Each carries the levy's own published
+  //    annual rate increase. Source: berkeleyca.gov property-taxes page.
+  { id: 'city_streetlight', shortLabel: 'Street Lighting', type: 'sqft_based', rate: 0.01080, duration: null, escalator: 0      },
+  { id: 'city_parks',       shortLabel: 'Parks (City)',    type: 'sqft_based', rate: 0.27830, duration: null, escalator: 0.0495 },
+  { id: 'city_library',     shortLabel: 'Library (City)',  type: 'sqft_based', rate: 0.31280, duration: null, escalator: 0.0495 },
+  { id: 'city_lib_relief',  shortLabel: 'Library Relief',  type: 'sqft_based', rate: 0.06297, duration: null, escalator: 0.0495 },
+  { id: 'city_paramedic',   shortLabel: 'Paramedic Suppl.',type: 'sqft_based', rate: 0.04920, duration: null, escalator: 0.0380 },
+  { id: 'city_disabled',    shortLabel: 'Emerg. Disabled', type: 'sqft_based', rate: 0.02339, duration: null, escalator: 0.0495 },
+  { id: 'city_fire_gg',     shortLabel: 'Fire (Msr GG)',   type: 'sqft_based', rate: 0.07026, duration: null, escalator: 0.0495 },
+  { id: 'city_fire_ff',     shortLabel: 'Fire/Wildfire',   type: 'sqft_based', rate: 0.13633, duration: null, escalator: 0.0495 },
+  { id: 'city_streets',     shortLabel: 'Safe Streets',    type: 'sqft_based', rate: 0.17482, duration: null, escalator: 0.0495 },
+
+  // ── City — flat charges (per-parcel, from the Alameda County secured bill) ──
+  { id: 'city_stormwater',  shortLabel: 'Storm Water',     type: 'flat',       rate: 91,     duration: null },
+
+  // ── BUSD parcel taxes — published FY2026-27 rates, $/sqft ──────
+  { id: 'sch_bsep',         shortLabel: 'School Tax (H)',  type: 'sqft_based', rate: 0.55620, duration: null },
+  { id: 'sch_maint',        shortLabel: 'Sch. Maintenance',type: 'sqft_based', rate: 0.10969, duration: null },
+  { id: 'sch_educator',     shortLabel: 'Educator Recruit',type: 'sqft_based', rate: 0.14944, duration: null },
+
+  // ── County / regional / special-district flat charges ───────────
+  { id: 'reg_peralta',      shortLabel: 'Peralta',         type: 'flat',       rate: 48,     duration: null },
+  { id: 'reg_transit',      shortLabel: 'AC Transit',      type: 'flat',       rate: 96,     duration: null },
+  { id: 'reg_ebmud',        shortLabel: 'EBMUD Wet Wthr',  type: 'flat',       rate: 160,    duration: null },
+  { id: 'reg_csa_para',     shortLabel: 'CSA Paramedic',   type: 'flat',       rate: 41,     duration: null },
+  { id: 'reg_parks',        shortLabel: 'Regional Parks',  type: 'flat',       rate: 17,     duration: null },
+  { id: 'reg_vector',       shortLabel: 'Mosq./Vector',    type: 'flat',       rate: 17,     duration: null },
+  { id: 'reg_bay',          shortLabel: 'Bay Restoration', type: 'flat',       rate: 12,     duration: null },
+  { id: 'reg_hazwaste',     shortLabel: 'Haz. Waste',      type: 'flat',       rate: 18,     duration: null },
 ];
 
 // Display structure — jurisdictional rollup for sidebar (two categories, expandable fixed charges)
@@ -850,34 +890,40 @@ const INCUMBENT_ROLLUP = [
   {
     id: 'fixed_charges_cat',
     label: 'Fixed Annual Charges',
-    note: 'Parcel taxes and special assessments — mix of sqft-based and flat charges',
-    tooltip: 'In addition to percentage-based property taxes, Berkeley homeowners pay annual parcel taxes and special assessments. Many are assessed per square foot of building area (e.g., library, parks, school programs); others are flat amounts regardless of home size. Total varies by home size — a 1,500 sqft home pays roughly $5,400/yr; a 3,000 sqft home roughly $8,000/yr. All are modeled as renewing.',
-    computeIds: ['city_library','city_lib_fund','city_parks','city_street','city_fire','city_wildfire',
-                 'sch_bsep','sch_teacher','sch_facilities','sch_peralta',
-                 'reg_stormwater','reg_transit','reg_mosquito','reg_bay','reg_parks'],
+    note: 'Parcel taxes and special assessments — City and BUSD levies are $/sqft of improvements',
+    tooltip: 'In addition to percentage-based property taxes, Berkeley owners pay parcel taxes and special assessments. The City and school levies are assessed per square foot of building improvements at published rates (tax year 2026-27); county and special-district charges are flat per-parcel amounts. Most City levies carry a published annual rate increase (4.95% for most, 3.80% for the paramedic tax), which compounds over the projection. A 2,192 sqft home pays roughly $4,800/yr in total fixed charges.',
+    computeIds: ['city_streetlight','city_parks','city_library','city_lib_relief','city_paramedic',
+                 'city_disabled','city_fire_gg','city_fire_ff','city_streets','city_stormwater',
+                 'sch_bsep','sch_maint','sch_educator',
+                 'reg_peralta','reg_transit','reg_ebmud','reg_csa_para','reg_parks','reg_vector',
+                 'reg_bay','reg_hazwaste'],
     expandable: true,
     subitems: [
-      // City — sqft-based (published rates)
-      { label: 'Library Services (City)',          computeIds: ['city_library'],    note: '$0.28/sqft · renewing'         },
-      { label: 'Library Funding Measure (City)',   computeIds: ['city_lib_fund'],   note: '$0.06/sqft · renewing'         },
-      { label: 'Parks & Landscaping (City)',       computeIds: ['city_parks'],      note: '$0.265/sqft · renewing'        },
-      { label: 'Street Repair (City)',             computeIds: ['city_street'],     note: '$0.15/sqft · renewing'         },
+      // City — sqft-based (published FY2026-27 residential rates)
+      { label: 'Street Lighting (City)',            computeIds: ['city_streetlight'], note: '$0.0108/sqft'                  },
+      { label: 'Parks, Trees & Landscaping (City)', computeIds: ['city_parks'],       note: '$0.2783/sqft · +4.95%/yr'      },
+      { label: 'Library Services (City)',           computeIds: ['city_library'],     note: '$0.3128/sqft · +4.95%/yr'      },
+      { label: 'Library Relief Act (Measure X 2024)', computeIds: ['city_lib_relief'],note: '$0.063/sqft · +4.95%/yr'       },
+      { label: 'Paramedic Supplemental (City)',     computeIds: ['city_paramedic'],   note: '$0.0492/sqft · +3.80%/yr'      },
+      { label: 'Emergency Svcs, Severely Disabled', computeIds: ['city_disabled'],    note: '$0.0234/sqft · +4.95%/yr'      },
+      { label: 'Fire Protection (Measure GG 2008)', computeIds: ['city_fire_gg'],     note: '$0.0703/sqft · +4.95%/yr'      },
+      { label: 'Fire &amp; Wildfire Prevention (FF 2020)', computeIds: ['city_fire_ff'], note: '$0.1363/sqft · +4.95%/yr'   },
+      { label: 'SAFE STREETS (Measure FF 2024)',    computeIds: ['city_streets'],     note: '$0.1748/sqft · +4.95%/yr'      },
       // City — flat
-      { label: 'Fire & Emergency Services (City)', computeIds: ['city_fire'],       note: '$845 flat · renewing'          },
-      { label: 'Wildfire Prevention (City)',       computeIds: ['city_wildfire'],   note: '$532 flat · renewing'          },
-      // Schools — sqft-based (estimated, normalized)
-      { label: 'School Programs (BSEP)',           computeIds: ['sch_bsep'],        note: '~$0.44/sqft est. · renewing'   },
-      { label: 'Teacher Support (Schools)',        computeIds: ['sch_teacher'],     note: '~$0.30/sqft est. · renewing'   },
-      { label: 'School Facilities Maint.',         computeIds: ['sch_facilities'],  note: '~$0.14/sqft est. · renewing'   },
-      // Schools — flat
-      { label: 'Community College (Peralta)',      computeIds: ['sch_peralta'],     note: '$130 flat · renewing'          },
-      // Regional — sqft-based (linear approximation)
-      { label: 'Sewer & Stormwater',               computeIds: ['reg_stormwater'],  note: '~$0.163/sqft est. · renewing'  },
-      // Regional — flat
-      { label: 'AC Transit Funding',               computeIds: ['reg_transit'],     note: '$96 flat · renewing'           },
-      { label: 'Mosquito & Vector Control',        computeIds: ['reg_mosquito'],    note: '$29 flat · renewing'           },
-      { label: 'Bay Restoration Program',          computeIds: ['reg_bay'],         note: '$12 flat · renewing'           },
-      { label: 'Regional Parks Funding',           computeIds: ['reg_parks'],       note: '$448 flat · renewing'          },
+      { label: 'Storm Water (City)',                computeIds: ['city_stormwater'],  note: '~$91 · lot-based, est.'        },
+      // Schools — sqft-based (published BUSD rates)
+      { label: 'Berkeley School Tax (Measure H 2024)', computeIds: ['sch_bsep'],      note: '$0.5562/sqft'                  },
+      { label: 'School Maintenance (Measure H 2020)',  computeIds: ['sch_maint'],     note: '$0.1097/sqft'                  },
+      { label: 'Educator Recruitment (Measure E 2020)',computeIds: ['sch_educator'],  note: '$0.1494/sqft'                  },
+      // County / regional — flat
+      { label: 'Community College (Peralta)',       computeIds: ['reg_peralta'],      note: '$48 flat'                      },
+      { label: 'AC Transit (Measure VV)',           computeIds: ['reg_transit'],      note: '$96 flat'                      },
+      { label: 'EBMUD Wet Weather',                 computeIds: ['reg_ebmud'],        note: '$160 flat'                     },
+      { label: 'CSA Paramedic (County)',            computeIds: ['reg_csa_para'],     note: '$41 flat'                      },
+      { label: 'Regional Parks (EBRPD)',            computeIds: ['reg_parks'],        note: '$17 flat'                      },
+      { label: 'Mosquito &amp; Vector Control',     computeIds: ['reg_vector'],       note: '$17 flat'                      },
+      { label: 'Bay Restoration (SFBRA Measure AA)',computeIds: ['reg_bay'],          note: '$12 flat'                      },
+      { label: 'Hazardous Waste Program',           computeIds: ['reg_hazwaste'],     note: '$18 flat'                      },
     ],
   },
 ];
@@ -919,6 +965,8 @@ let state = {
   monthlySpending: 2000,
   avGrowth:   0.02,
   inflation:  0.03,
+  bondRate:   0.057,   // coupon implied by the City's own $44 projection — see sources/bonds/
+
   projYears:  30,
   selAV:   null,   // index into AV_BANDS
   selSqft: null,   // index into SQFT_BANDS
@@ -930,13 +978,34 @@ const expandedRollup = new Set(); // tracks which fixed-charge category rows are
 // ════════════════════════════════════════════════════════════════
 // COMPUTATION
 // ════════════════════════════════════════════════════════════════
+// Debt service scales with the coupon the City gets at each sale. Tranche rates are
+// calibrated at BOND_RATE_BASE (the coupon implied by the City's own $44 projection);
+// this returns the ratio of level 30-year debt service at the chosen rate to that base.
+const BOND_RATE_BASE = 0.057;
+const BOND_TERM = 30;
+function levelDebtService(r, n) { return r / (1 - Math.pow(1 + r, -n)); }
+function bondRateFactor() {
+  const r = state.bondRate;
+  if (!r || r === BOND_RATE_BASE) return 1;
+  return levelDebtService(r, BOND_TERM) / levelDebtService(BOND_RATE_BASE, BOND_TERM);
+}
+
 // Low-level cost of one measure at given AV/spending — no enabled-state check
-function rawCost(m, curAV, sqft, curSpd) {
+// `yr` compounds a levy's own published annual rate increase (escalator).
+// Year 0 is the current bill, so escalator has no effect there.
+function rawCost(m, curAV, sqft, curSpd, yr = 0) {
+  const esc = m.escalator ? Math.pow(1 + m.escalator, yr) : 1;
   switch (m.type) {
     case 'av_based':   return (curAV / 100_000) * m.rate;
+    // Staggered bond tranches: only those already issued and not yet matured count.
+    case 'av_tranches': {
+      const r = m.tranches.reduce((a, t) =>
+        (yr >= t.offsetYear && yr < t.offsetYear + t.term) ? a + t.rate : a, 0);
+      return (curAV / 100_000) * r * bondRateFactor();
+    }
     case 'av_exempt':  return Math.max(0, curAV - HO_EXEMPTION) * m.rate;
-    case 'sqft_based': return sqft * m.rate;
-    case 'flat':       return m.rate;
+    case 'sqft_based': return sqft * m.rate * esc;
+    case 'flat':       return m.rate * esc;
     case 'sales_tax':  return curSpd * 12 * m.rate;
     default: return 0;
   }
@@ -963,6 +1032,33 @@ function totalAnnualCost(av, sqft, spending) {
   return proposedTotal(av, sqft, spending) + incumbentTotal(av, sqft, spending);
 }
 
+// Per-year projection split into stacked components, so the chart can show
+// composition rather than a single total. A ramping bond hides inside a falling
+// total; separating the layers is the only way that reads.
+function projectLayers(av, sqft, spending) {
+  const { avGrowth, inflation, projYears } = state;
+  const out = { incumbent: [], bond: [], other: [] };
+  let curAV = av, curSpd = spending;
+  for (let yr = 0; yr <= projYears; yr++) {
+    let inc = 0, bond = 0, other = 0;
+    if (state.includeBaseline) {
+      for (const m of INCUMBENT_COMPUTE) {
+        if (m.duration !== null && yr >= m.duration) continue;
+        inc += rawCost(m, curAV, sqft, curSpd, yr);
+      }
+    }
+    for (const m of MEASURES) {
+      if (!state.enabled[m.id]) continue;
+      if (m.duration !== null && yr >= m.duration) continue;
+      const c = rawCost(m, curAV, sqft, curSpd, yr);
+      if (m.type === 'av_tranches') bond += c; else other += c;
+    }
+    out.incumbent.push(inc); out.bond.push(bond); out.other.push(other);
+    curAV *= (1 + avGrowth); curSpd *= (1 + inflation);
+  }
+  return out;
+}
+
 // Returns array [year0, year1, ..., yearN] of annual costs.
 // includeProposed=false yields the incumbent-only counterfactual (the baseline line).
 function projectCosts(av, sqft, spending, includeProposed = true) {
@@ -977,14 +1073,14 @@ function projectCosts(av, sqft, spending, includeProposed = true) {
       for (const m of MEASURES) {
         if (!state.enabled[m.id]) continue;
         if (m.duration !== null && yr >= m.duration) continue;
-        cost += rawCost(m, curAV, sqft, curSpd);
+        cost += rawCost(m, curAV, sqft, curSpd, yr);
       }
     }
     // Incumbent taxes (when baseline toggle is on)
     if (state.includeBaseline) {
       for (const m of INCUMBENT_COMPUTE) {
         if (m.duration !== null && yr >= m.duration) continue;
-        cost += rawCost(m, curAV, sqft, curSpd);
+        cost += rawCost(m, curAV, sqft, curSpd, yr);
       }
     }
     out.push(cost);
@@ -1357,7 +1453,6 @@ function renderDetail() {
   const todayCost = incumbentTotal(avBand.mid, sqftBand.mid, spending);
   const delta     = current - todayCost;
   // Counterfactual path: incumbents only, tracking AV growth and bond step-downs
-  const baseProj  = projectCosts(avBand.mid, sqftBand.mid, spending, false);
   const peakCost = Math.max(...proj);
   const peakYear = proj.indexOf(peakCost);
   const finalCost = proj[proj.length - 1];
@@ -1382,6 +1477,7 @@ function renderDetail() {
   if (chart) { chart.destroy(); chart = null; }
 
   const labels = proj.map((_, i) => i === 0 ? 'Yr 0' : `Yr ${i}`);
+  const layers = projectLayers(av, sqft, spending);
   const ctx    = document.getElementById('proj-canvas').getContext('2d');
 
   // Build expiry-line annotations for measures that end within the projection window
@@ -1428,28 +1524,35 @@ function renderDetail() {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        label: 'With selected measures',
-        data: proj,
-        borderColor: '#1a3a5c',
-        backgroundColor: 'rgba(26,58,92,0.09)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 2,
-        pointHoverRadius: 6,
-        borderWidth: 2,
-      }, ...(state.includeBaseline ? [{
-        // Flat reference line at what the household pays today, before any measure passes
-        label: 'Without these new measures',
-        data: baseProj,
-        borderColor: 'rgba(100,100,120,0.75)',
-        borderDash: [5, 4],
-        fill: false,
-        tension: 0,
-        pointRadius: 0,
-        pointHoverRadius: 0,
-        borderWidth: 1.5,
-      }] : [])],
+      datasets: [
+        // Stacked composition: existing taxes on the bottom (they shrink as bonds
+        // mature), the infrastructure bond on top (it grows as tranches are issued).
+        // Stacking is what makes the ramp visible inside a falling total.
+        ...(state.includeBaseline ? [{
+          label: 'Taxes you already pay',
+          data: layers.incumbent,
+          backgroundColor: 'rgba(120,124,140,0.35)',
+          borderColor: 'rgba(120,124,140,0.9)',
+          fill: 'origin', stack: 'cost', tension: 0.3,
+          pointRadius: 0, pointHoverRadius: 5, borderWidth: 1.5,
+        }] : []),
+        {
+          label: 'New measures (level)',
+          data: layers.other,
+          backgroundColor: 'rgba(26,58,92,0.30)',
+          borderColor: 'rgba(26,58,92,0.9)',
+          fill: '-1', stack: 'cost', tension: 0.3,
+          pointRadius: 0, pointHoverRadius: 5, borderWidth: 1.5,
+        },
+        {
+          label: 'Infrastructure bond (grows)',
+          data: layers.bond,
+          backgroundColor: 'rgba(234,88,12,0.45)',
+          borderColor: '#ea580c',
+          fill: '-1', stack: 'cost', tension: 0.3,
+          pointRadius: 0, pointHoverRadius: 5, borderWidth: 2,
+        },
+      ],
     },
     options: {
       responsive: true,
@@ -1464,12 +1567,16 @@ function renderDetail() {
           labels: { boxWidth: 18, boxHeight: 2, font: { size: 10 }, padding: 8 },
         },
         tooltip: {
-          callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt$(ctx.raw)} / yr` },
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmt$(ctx.raw)} / yr`,
+            footer: items => `Total: ${fmt$(items.reduce((a, i) => a + i.raw, 0))} / yr`,
+          },
         },
         annotation: { annotations },
       },
       scales: {
         y: {
+          stacked: true,
           ticks: { callback: v => fmt$(v), font: { size: 10 }, maxTicksLimit: 5 },
           grid: { color: 'rgba(0,0,0,0.05)' },
         },
@@ -1495,6 +1602,7 @@ function renderSidebar() {
     <div class="assump-row"><span>Monthly Taxable Spending</span><span>${fmt$(state.monthlySpending)}/mo</span></div>
     <div class="assump-row"><span>AV Growth Rate</span><span>${fmtPct(state.avGrowth)}/yr</span></div>
     <div class="assump-row"><span>Spending Inflation</span><span>${fmtPct(state.inflation)}/yr</span></div>
+    <div class="assump-row"><span>Bond Interest Rate</span><span>${fmtPct(state.bondRate)}</span></div>
     <div class="assump-row"><span>Time Horizon</span><span>${state.projYears} years</span></div>
     <div class="sb-disclosure">Taxes are modeled as continuing over time, reflecting historical renewal patterns. Bonds expire as scheduled. Actual future taxes may vary.</div>
     <div class="sb-disclosure">Property tax rates shown are estimates based on publicly available Alameda County rate data. Bond debt service rates decline as existing bonds mature.</div>
@@ -1531,6 +1639,27 @@ function renderSidebar() {
       <span class="proj-note"> — drops to ${fmt$(finalCost)}/yr by yr ${state.projYears} as bonds expire</span>`;
   }
 
+  // ── Ramp warning ────────────────────────────────────────────────
+  // A staggered bond costs least in year 1. Leading with the year-1 number
+  // understates it, so name the ramp explicitly wherever one is selected.
+  const rampMeasures = MEASURES.filter(m =>
+    state.enabled[m.id] && m.type === 'av_tranches');
+  let rampHTML = '';
+  if (rampMeasures.length) {
+    const nowCost  = rampMeasures.reduce((a, m) => a + rawCost(m, av, sqft, spending, 0), 0);
+    const peakOff  = Math.max(...rampMeasures.map(m => m.peakOffset || 0));
+    // Peak tranche cost, letting AV grow to that year as the projection does.
+    const avAtPeak = av * Math.pow(1 + state.avGrowth, peakOff);
+    const atPeak   = rampMeasures.reduce((a, m) => a + rawCost(m, avAtPeak, sqft, spending, peakOff), 0);
+    rampHTML = `
+      <div class="ramp-warn">
+        <strong>This bill grows.</strong> The infrastructure bond is borrowed in three
+        pieces, five years apart — so it starts at <strong>${fmt$(nowCost)}/yr</strong>
+        and climbs to about <strong>${fmt$(atPeak)}/yr</strong> by year ${peakOff},
+        then runs into the 2060s. The first-year number is the smallest it will ever be.
+      </div>`;
+  }
+
   // Summary block — three-way split when baseline is on, simple total when off
   let summaryHTML;
   if (state.includeBaseline) {
@@ -1539,10 +1668,19 @@ function renderSidebar() {
         <span class="split-label">Current taxes</span>
         <span class="split-amount incumbent">${fmt$(incCost)}/yr</span>
       </div>
+      ${rampMeasures.length ? `
+      <div class="split-row">
+        <span class="split-label">+ Infrastructure bond <span class="split-sub">(rises over time)</span></span>
+        <span class="split-amount proposed">+${fmt$(rampMeasures.reduce((a, m) => a + measureAnnualCost(m, av, sqft, spending), 0))}/yr</span>
+      </div>
+      <div class="split-row">
+        <span class="split-label">+ Other new measures <span class="split-sub">(roughly level)</span></span>
+        <span class="split-amount proposed">+${fmt$(propCost - rampMeasures.reduce((a, m) => a + measureAnnualCost(m, av, sqft, spending), 0))}/yr</span>
+      </div>` : `
       <div class="split-row">
         <span class="split-label">+ New measures</span>
         <span class="split-amount proposed">+${fmt$(propCost)}/yr</span>
-      </div>
+      </div>`}
       <div class="split-row total-row">
         <span class="split-label total">Total today</span>
         <span class="split-amount total">${fmt$(current)}/yr</span>
@@ -1556,6 +1694,7 @@ function renderSidebar() {
   sbSummary.innerHTML = `
     ${summaryHTML}
     <div class="sb-projected" style="margin-top:8px">${projectedHTML}</div>
+    ${rampHTML}
     <div class="sb-measure-count">${active.length} proposed measure${active.length !== 1 ? 's' : ''} selected
       &nbsp;·&nbsp; AV ${fmtAV(avBand.lo)} band &nbsp;·&nbsp; ${sqftBand.lo.toLocaleString()} sqft band</div>
   `;
@@ -1614,6 +1753,10 @@ document.getElementById('inp-spending').addEventListener('input', e => {
 });
 document.getElementById('inp-av-growth').addEventListener('input', e => {
   state.avGrowth = (parseFloat(e.target.value) || 0) / 100;
+  update();
+});
+document.getElementById('inp-bond-rate').addEventListener('input', e => {
+  state.bondRate = (parseFloat(e.target.value) || 0) / 100;
   update();
 });
 document.getElementById('inp-inflation').addEventListener('input', e => {
@@ -1691,6 +1834,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   state.monthlySpending = 2000;
   state.avGrowth        = 0.02;
   state.inflation       = 0.03;
+  state.bondRate        = 0.057;
   state.projYears       = 30;
   state.selAV           = null;
   state.selSqft         = null;
@@ -1698,6 +1842,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   document.getElementById('inp-spending').value   = 2000;
   document.getElementById('inp-av-growth').value  = 2;
   document.getElementById('inp-inflation').value  = 3;
+  document.getElementById('inp-bond-rate').value  = 5.7;
   document.getElementById('inp-years').value      = 30;
   document.getElementById('cb-baseline').checked  = true;
   update();

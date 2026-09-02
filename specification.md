@@ -934,3 +934,136 @@ INCUMBENT_COMPUTE expanded from 7 to 19 entries. Former aggregate flat entries (
 
 * Changing sqft in the matrix produces materially different totals in matrix cells, detail panel, and sidebar
 * Sqft affects only sqft-based measures; flat and AV-based measures are unaffected by sqft changes
+
+
+---
+
+# Addendum: Incumbent Levy Rebuild (September 2026)
+
+## 48. Provenance
+
+Sections 22, 32, 42 and 43 above are superseded for all incumbent (existing) charges.
+Those figures were estimates that had been back-fit to round category subtotals
+(City $2,225 / Schools $1,500 / Regional $1,075 = $4,800). Two were materially wrong:
+a flat "$845 Fire & Emergency Services" and a flat "$532 Wildfire Prevention" charge,
+neither of which exists — Berkeley assesses fire by square foot under Measures GG (2008)
+and FF (2020). "Regional Parks $448" was wrong by roughly 37x.
+
+The rebuilt values come from two primary sources:
+
+* **City and BUSD rates** — the City of Berkeley published schedule, "City of Berkeley
+  Property Tax Assessments & Fees for Tax Year 2026-2027"
+  (https://berkeleyca.gov/city-services/report-pay/property-taxes). Residential rates,
+  $/sqft of improvements, with each levy's published annual rate increase.
+* **County and special-district flat charges** — line items on an Alameda County secured
+  property tax bill for a Berkeley parcel, tax year 2025-2026. The bill is not archived
+  in this repo (it identifies a specific parcel and owner); only the levy names and
+  per-parcel dollar amounts, which are uniform across parcels, are carried here.
+
+## 49. Reconciliation
+
+Validated against that bill for a 2,192 sqft home at AV $625,042:
+
+| | Model | Bill | Delta |
+| --- | --- | --- | --- |
+| Ad valorem @ 1.2323% | $7,616.13 | $7,616.12 | $0.01 |
+| Fixed charges (adjusted to FY25-26 rates) | $4,808.91 | $4,787.90 | 0.4% |
+
+The 0.4% residual is rounding of flat charges to whole dollars plus the estimated
+stormwater charge. The building square footage backs out consistently at 2,192 across
+every City levy, and 2,234 across the three BUSD levies (BUSD assesses a slightly
+different footprint).
+
+**The SAFE STREETS line on a FY2025-26 bill is 1.5x the annual rate.** Measure FF (2024)
+took effect January 1, 2025, so that bill carries 18 months. The model uses the 12-month
+annual rate, which is correct going forward.
+
+## 50. Escalators
+
+`rawCost()` takes an optional `yr` argument and compounds a levy's own published annual
+rate increase. Year 0 is the current bill, so escalators have no effect on the headline
+number — only on the projection. Most City levies escalate at 4.95%/yr; the Paramedic
+Supplemental tax at 3.7975%. BUSD levies, county and special-district flat charges are
+modeled as level, having no published escalator.
+
+## 51. Known remaining estimates
+
+* **Storm water** is modeled as a flat ~$91 (the sum of the bill's Clean Storm Water and
+  2018 Storm Water lines). The real Clean Storm Water formula is
+  `(lot sqft x $50.00 x runoff factor) / 2,196`, factor 0.4 for single residential — it
+  depends on *lot* area, which this model does not collect. It is not a function of
+  building square footage.
+* **Bond debt cohorts** remain a synthetic 25/40/35 split of the observed 0.2323% overlay
+  into 5/12/25-year maturities, so the chart steps down. Not derived from an actual bond
+  schedule.
+* **Refuse/Zero Waste** is billed on the property tax bill but varies by receptacle size
+  and service frequency. Not modeled.
+* Flat charges are rounded to whole dollars.
+
+---
+
+# Addendum: Measure U Tranche Model & Rate Sensitivity (September 2026)
+
+## 52. Why Measure U is not a flat rate
+
+Measure U was previously modeled as `av_based` at $44 per $100k AV for 30 years. That is
+wrong in four ways, all traceable to the City's own Council report of December 2, 2025
+(archived at `../council/sources/bonds/`):
+
+1. **$44 is an average of the new bond AND existing authorizations**, not Measure U's
+   marginal cost.
+2. **It is a 40-year average (2027-2067)**, not a 30-year one.
+3. **The bond ramps.** The City assumes "$100 million is issued every five years
+   commencing in 2027," so only a third of the authorization is outstanding at first.
+4. **Year one is the cheapest year**, which is precisely the number a flat model puts in
+   the headline.
+
+Measure U is now `type: 'av_tranches'` — three $100M tranches at offsets 0/5/10, each a
+30-year obligation at ~$14 per $100k AV, calibrated so all three outstanding together
+reproduce the ~$41-42/$100k peak visible in the City's published chart.
+
+## 53. Interest rate sensitivity
+
+GO bond debt service passes through to the secured roll "without limitation as to rate or
+amount" (Official Notice of Sale, July 14, 2026). The coupon fixes at each sale — but
+Measure U has three sale dates spread over a decade, so two thirds of the cost is priced
+years after the election.
+
+`bondRateFactor()` scales tranche rates by the ratio of level 30-year debt service at the
+selected coupon to that at `BOND_RATE_BASE` (5.7%). The base is not arbitrary: it is the
+coupon implied by the City's own $44 projection.
+
+| Coupon | Factor | Peak on a $625k AV home |
+| --- | --- | --- |
+| 4.00% | 0.822 | $354/yr |
+| 5.70% (base) | 1.000 | $431/yr |
+| 8.00% | 1.263 | $544/yr |
+
+## 54. The larger undisclosed assumption is assessed-value growth
+
+Berkeley's net secured assessed value was $28.2B in FY2025 (ACFR FY2025, audited).
+Solving the City's projection for the coupon at various AV growth assumptions:
+
+| AV growth | AV by 2040 | Implied coupon |
+| --- | --- | --- |
+| none | $28.2B | 1.05% (impossible) |
+| 4%/yr | $50.8B | 5.69% (plausible) |
+| 6.39%/yr (FY25 actual) | $71.4B | 9.17% (implausible) |
+
+The projection coheres only near 4%/yr AV growth with a ~5.7% coupon. **The $44 holds
+because the tax base is assumed to nearly double by 2040, not because the borrowing is
+cheap.** At 2%/yr growth the rate per $100k runs roughly a third higher at any coupon.
+The report states neither assumption.
+
+## 55. Communicating the ramp
+
+Three changes, because a ramping cost inside a falling total is invisible:
+
+* **Ramp warning** (`.ramp-warn`) — names the year-1 figure, the peak figure and the year
+  it arrives, in plain language, whenever an `av_tranches` measure is selected.
+* **Split summary rows** — the bond is separated from level parcel taxes, since blending
+  them hides the only component that behaves differently.
+* **Stacked chart** — existing taxes, level new measures, and the bond are drawn as
+  stacked areas. The total falls as existing bonds mature; only stacking shows the new
+  burden climbing underneath that decline. This is the same presentation the City's own
+  chart uses, for the same reason.
